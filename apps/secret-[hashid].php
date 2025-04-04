@@ -18,6 +18,7 @@ if (empty($sshKey)) {
     error('No SSH key provided, couldn\'t verify your identity');
     exit(1);
 }
+// $sshKey = base64_decode($sshKey);
 
 // Initialize Secret class and view the secret
 $secret = new Secret();
