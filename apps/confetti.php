@@ -4,11 +4,9 @@
 
 declare(strict_types=1);
 
-require_once realpath(__DIR__ . '/../vendor/autoload.php');
+require_once realpath(__DIR__ . '/vendor/autoload.php');
 
-use function Laravel\Prompts\{clear, error, info, spin, text, progress, search, table};
-use App\Elephant;
-use App\GuessTheElephantPrompt;
+use function Laravel\Prompts\{clear};
 
 $prompt = new class extends Laravel\Prompts\Prompt {
     public function value(): mixed {
