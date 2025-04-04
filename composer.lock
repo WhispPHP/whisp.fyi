@@ -1045,16 +1045,16 @@
         },
         {
             "name": "whispphp/whisp",
-            "version": "1.2.5",
+            "version": "1.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/WhispPHP/whisp.git",
-                "reference": "b0d59bf37c4d21df0aeec323d019c2634785eb3c"
+                "reference": "27a9544988d8e333fe575775fbda974d22134a74"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/WhispPHP/whisp/zipball/b0d59bf37c4d21df0aeec323d019c2634785eb3c",
-                "reference": "b0d59bf37c4d21df0aeec323d019c2634785eb3c",
+                "url": "https://api.github.com/repos/WhispPHP/whisp/zipball/27a9544988d8e333fe575775fbda974d22134a74",
+                "reference": "27a9544988d8e333fe575775fbda974d22134a74",
                 "shasum": ""
             },
             "require": {
@@ -1089,9 +1089,9 @@
             "description": "Pure PHP SSH server designed for terminal apps",
             "support": {
                 "issues": "https://github.com/WhispPHP/whisp/issues",
-                "source": "https://github.com/WhispPHP/whisp/tree/1.2.5"
+                "source": "https://github.com/WhispPHP/whisp/tree/1.3.2"
             },
-            "time": "2025-04-03T10:41:20+00:00"
+            "time": "2025-04-04T04:47:29+00:00"
         }
     ],
     "packages-dev": [],
