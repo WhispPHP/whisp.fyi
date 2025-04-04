@@ -1,7 +1,6 @@
 {
     "require": {
-        "whispphp/whisp": "dev-main|^1.0",
-        "laravel/prompts": "^0.3.5"
+        "whispphp/whisp": "dev-main|^1.0"
     },
     "autoload": {
         "psr-4": {
