@@ -2,3 +2,4 @@ vendor
 server.log
 guestbook.json
 apps/guestbook.json
+storage
