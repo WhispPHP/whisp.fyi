@@ -180,8 +180,11 @@ class Secret {
     public function verifyGitHubUsername(string $username): array|bool {
         $response = @file_get_contents("https://github.com/{$username}.keys");
         if ($response === false) {
+            error_log("Failed to verify GitHub username: {$username}");
             return false;
         }
+
+        error_log("GitHub username verified: {$username}, got response: {$response}");
 
         return explode("\n", $response);
     }
@@ -221,11 +224,13 @@ class Secret {
     public function verifySecretAccess(string $hashid, string $sshKey): bool {
         $secret = $this->getUnviewedSecret($hashid);
         if (!$secret) {
+            error_log("Secret doesn't exist or has already been viewed: {$hashid}");
             return false;
         }
 
         $authorizedKeys = $this->verifyGitHubUsername($secret['authorized_github_username']);
         if ($authorizedKeys === false) {
+            error_log("Failed to verify GitHub username: {$secret['authorized_github_username']} for secret: {$hashid}");
             return false;
         }
 

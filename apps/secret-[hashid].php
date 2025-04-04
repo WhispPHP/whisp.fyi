@@ -12,7 +12,7 @@ if (empty($hashid)) {
 }
 
 // Get SSH key from environment
-$sshKey = $_ENV['WHISP_USER_PUBLIC_KEY'] ?? '';
+$sshKey = $_SERVER['WHISP_USER_PUBLIC_KEY'] ?? $_ENV['WHISP_USER_PUBLIC_KEY'] ?? '';
 
 if (empty($sshKey)) {
     error('No SSH key provided, couldn\'t verify your identity');
