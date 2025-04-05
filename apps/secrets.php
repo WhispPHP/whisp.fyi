@@ -53,3 +53,6 @@ $secret->drawBox(
 echo copyToClipboard($fullCommand);
 
 outro("We should have put that command in your clipboard for easy sharing too!\n\nThanks for using Whisp Secrets!");
+
+// Attempt to send a notification to the terminal
+echo "\033]9;👋 Secret should be in your clipboard 🔮, keep being awesome! 💪\007";
