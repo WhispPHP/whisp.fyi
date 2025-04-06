@@ -4,54 +4,41 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use function Laravel\Prompts\{info, intro, outro};
 
-enum FocusState {
-    case FOCUSED;
-    case UNFOCUSED;
-    case UNSUPPORTED;
-}
-
-function checkTerminalFocus(): FocusState {
-    // Query terminal focus state using OSC 104
-    // OSC 104;? queries the current focus state
-    fwrite(STDOUT, "Howdy");
+function checkTerminalFocus(): ?bool {
+    // Send focus query
     fwrite(STDOUT, "\033]104;?\007");
-    fflush(STDOUT);
 
+    // Set stream to non-blocking to check for response
     stream_set_blocking(STDIN, false);
-    usleep(200000);
 
+    // Wait briefly for response (100ms)
+    usleep(100000);
+
+    // Try to read response
     $response = fread(STDIN, 1024);
 
-    // Reset stream to blocking mode
-    var_dump("STDIN response:", bin2hex($response));
-
+    // Reset stream to blocking
     stream_set_blocking(STDIN, true);
 
     if (strpos($response, "\033]104;0\007") !== false) {
-        return FocusState::FOCUSED; // Terminal has focus
+        return true; // Terminal has focus
     } elseif (strpos($response, "\033]104;1\007") !== false) {
-        return FocusState::UNFOCUSED; // Terminal doesn't have focus
+        return false; // Terminal doesn't have focus
     }
 
-    return FocusState::UNSUPPORTED; // Terminal doesn't support focus reporting
+    return null; // Terminal doesn't support focus reporting
 }
 
 function sendNotification(string $message): void {
     // $focusState = checkTerminalFocus();
 
-    // if ($focusState === FocusState::UNSUPPORTED) {
-        // info('Your terminal doesn\'t support focus reporting, so we are going to notify regardless :)' . PHP_EOL);
-    // } elseif ($focusState === FocusState::UNFOCUSED) {
-        // info('Terminal is not in focus, sending notification to get your attention..' . PHP_EOL);
-    // }
-
     // Send notification if terminal is not in focus or doesn't support focus reporting
-    // if ($focusState === FocusState::UNFOCUSED || $focusState === FocusState::UNSUPPORTED) {
+    // if ($focusState === false || $focusState === null) {
         echo "\033]9;{$message}\007";
     // }
 }
 
-intro('It is notification time!');
+intro('It is notification time, sleeping for ' . $argv[1] . ' seconds!');
 
 // Save current terminal settings
 $termios = shell_exec('stty -g');
@@ -60,6 +47,7 @@ $termios = shell_exec('stty -g');
 shell_exec('stty -echo -icanon');
 
 // Only send the notification if the terminal is not in focus, or doesn't support focus reporting
+sleep($argv[1]);
 sendNotification('👋 Howdy from Whisp 🔮, keep being awesome! 💪');
 
 // From testing it worked in Ghostty & iTerm, but not Warp or Terminal.app.
