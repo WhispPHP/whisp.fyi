@@ -22,6 +22,6 @@ echo linkText("https://x.com/ashleyhindle?2", blueText("https://x.com/ashleyhind
 
 echo "\n\n";
 
-echo "Now we're testing without the special escape codes, just regular text: " . blueText("https://x.com/ashleyhindle?3");
+echo "Now we're testing without the special escape codes, just regular text: https://x.com/ashleyhindle?3";
 
 echo "\n\n";
