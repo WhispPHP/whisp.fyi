@@ -32,7 +32,7 @@ class GuestbookPrompt extends Prompt
 
     public function entriesToShow(): int
     {
-        $entriesToShow = $this->terminal()->lines() - 3 - 8;
+        $entriesToShow = $this->terminal()->lines() - 3 - 9;
         if ($this->signing) {
             $entriesToShow -= 8;
         }

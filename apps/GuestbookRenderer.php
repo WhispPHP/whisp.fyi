@@ -23,7 +23,7 @@ class GuestbookRenderer extends Renderer
             $this->renderSigningForm();
         }
 
-        return $this->renderGuestbook() . $this->renderInstructions();
+        return $this->renderGuestbook() . $this->renderInstructions() . PHP_EOL;
     }
 
     public function renderInstructions(): string
