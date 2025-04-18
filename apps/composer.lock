@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "21122d72a21d99f24acc7d32bfe4cc25",
+    "content-hash": "f5db3afb6b37a616d38b4bb757476fb1",
     "packages": [
         {
             "name": "ashleyhindle/croft",
-            "version": "0.0.3",
+            "version": "0.0.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ashleyhindle/croft.git",
-                "reference": "34e408401a82157ee46365c0989d67e01e9889eb"
+                "reference": "bb64ae3aeab779dd55beb977374dccead11acfc7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ashleyhindle/croft/zipball/34e408401a82157ee46365c0989d67e01e9889eb",
-                "reference": "34e408401a82157ee46365c0989d67e01e9889eb",
+                "url": "https://api.github.com/repos/ashleyhindle/croft/zipball/bb64ae3aeab779dd55beb977374dccead11acfc7",
+                "reference": "bb64ae3aeab779dd55beb977374dccead11acfc7",
                 "shasum": ""
             },
             "require": {
@@ -73,9 +73,9 @@
             ],
             "support": {
                 "issues": "https://github.com/ashleyhindle/croft/issues",
-                "source": "https://github.com/ashleyhindle/croft/tree/0.0.3"
+                "source": "https://github.com/ashleyhindle/croft/tree/0.0.6"
             },
-            "time": "2025-04-17T15:59:13+00:00"
+            "time": "2025-04-18T08:31:17+00:00"
         },
         {
             "name": "graham-campbell/result-type",
