@@ -226,7 +226,7 @@ class GuestbookRenderer extends Renderer
                 $contentWidth = $this->_stringWidth($cellContent);
                 $padTotal = $colWidth - $contentWidth;
 
-                $line .= ' ' . $cellContent . str_repeat(' ', $padTotal-1);
+                $line .= ' ' . $cellContent . str_repeat(' ', max(0, $padTotal-1));
                 $line .= $chars['vertical'];
             }
             return $line;
