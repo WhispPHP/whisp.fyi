@@ -7,11 +7,7 @@ namespace Apps;
 use Laravel\Prompts\Themes\Default\Renderer;
 use SoloTerm\Grapheme\Grapheme;
 use function Laravel\Prompts\clear;
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
-use Laravel\Prompts\Table;
-use Laravel\Prompts\Themes\Default\TableRenderer;
 
 class GuestbookRenderer extends Renderer
 {

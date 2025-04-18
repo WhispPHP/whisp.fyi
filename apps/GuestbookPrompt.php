@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace Apps;
 
 use Laravel\Prompts\Prompt;
-use function Laravel\Prompts\{clear, text, info};
 use Apps\GuestbookRenderer;
 use Whisp\Mouse\Mouse;
 use Whisp\Mouse\MouseButton;
-use Whisp\Mouse\MouseMotion;
-use Whisp\Mouse\MouseEvent;
-use Laravel\Prompts\Key;
 
 class GuestbookPrompt extends Prompt
 {
