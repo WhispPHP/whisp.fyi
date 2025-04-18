@@ -1,33 +1,101 @@
-#!/usr/bin/env php
 <?php
 
-use Laravel\Prompts\Prompt;
+declare(strict_types=1);
 
-require_once __DIR__.'/GuestbookRenderer.php';
+namespace Apps;
+
+use Laravel\Prompts\Prompt;
+use function Laravel\Prompts\{clear, text, info};
+use Apps\GuestbookRenderer;
+use Whisp\Mouse\Mouse;
+use Whisp\Mouse\MouseButton;
+use Whisp\Mouse\MouseMotion;
+use Whisp\Mouse\MouseEvent;
+use Laravel\Prompts\Key;
 
 class GuestbookPrompt extends Prompt
 {
+    public bool $signing = false;
     public array $guestbook = [];
 
     private string $storageFile;
+
+    private Mouse $mouse;
+    public int $startIndex = 0;
 
     public function __construct()
     {
         date_default_timezone_set('UTC');
         $this->storageFile = realpath(__DIR__.'/../').'/guestbook.json';
         $this->loadGuestbook();
-        static::$themes['default'][static::class] = GuestbookRenderer::class;
-        $this->on('key', function (string $key) {
-            var_dump($key);
-            if ($key === 'q') {
-                static::terminal()->exit();
-            } else {
-                var_dump(['cols' => $this->terminal()->cols(), 'lines' => $this->terminal()->lines()]);
+        static::$themes['default'][GuestbookPrompt::class] = GuestbookRenderer::class;
+
+        $this->setupMouseListening();
+        $this->listenForKeys();
+    }
+
+    public function entriesToShow(): int
+    {
+        $entriesToShow = $this->terminal()->lines() - 3 - 8;
+        if ($this->signing) {
+            $entriesToShow -= 8;
+        }
+
+        return $entriesToShow;
+    }
+
+    protected function setupMouseListening(): void
+    {
+        $this->mouse = new Mouse();
+        static::writeDirectly($this->mouse->enableBasic());
+        register_shutdown_function(function () {
+            static::writeDirectly($this->mouse->disable());
+        });
+    }
+
+    protected function listenForMouse(string $key): void
+    {
+        $event = $this->mouse->parseEvent($key);
+        if ($event->mouseEvent === MouseButton::WHEEL_UP) {
+            if ($this->startIndex > 0) {
+                $this->startIndex--;
+            }
+        } elseif ($event->mouseEvent === MouseButton::WHEEL_DOWN) {
+            if ($this->startIndex < count($this->guestbook) - $this->entriesToShow()) {
+                $this->startIndex++;
+            }
+        }
+    }
+
+    public function listenForKeys(): void
+    {
+        $this->on('key', function ($key) {
+            // Mouse events are sent as \e[M, so we need to check for that
+            if ($key[0] === "\e" && strlen($key) > 2 && $key[2] === 'M') {
+                $this->listenForMouse($key);
+
+                return;
+            }
+
+            // Keys may be buffered.
+            foreach (mb_str_split($key) as $key) {
+                match ($key) {
+                    's' => $this->sign(),
+                    'S' => $this->sign(),
+                    'q' => $this->quit(),
+                    'Q' => $this->quit(),
+                    default => null,
+                };
             }
         });
     }
 
-    public function exit()
+    public function sign()
+    {
+        $this->signing = true;
+    }
+
+    public function quit()
     {
         exit(0);
     }

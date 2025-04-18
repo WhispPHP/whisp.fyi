@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d6f515b1ecc16d96d1d10125a691ef9c",
+    "content-hash": "24a5929822a0361eed51de681fdb6b97",
     "packages": [
         {
             "name": "ashleyhindle/croft",
@@ -531,6 +531,63 @@
                 "source": "https://github.com/php-fig/simple-cache/tree/3.0.0"
             },
             "time": "2021-10-29T13:26:27+00:00"
+        },
+        {
+            "name": "soloterm/grapheme",
+            "version": "v1.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/soloterm/grapheme.git",
+                "reference": "502334c51a208750e8fc418228c8956e585ba34b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/soloterm/grapheme/zipball/502334c51a208750e8fc418228c8956e585ba34b",
+                "reference": "502334c51a208750e8fc418228c8956e585ba34b",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.1",
+                "symfony/polyfill-intl-normalizer": "^1.27.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^10.5|^11"
+            },
+            "suggest": {
+                "ext-intl": "For best performance"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "SoloTerm\\Grapheme\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Aaron Francis",
+                    "email": "aarondfrancis@gmail.com"
+                }
+            ],
+            "description": "A PHP package to measure the width of unicode strings rendered to a terminal.",
+            "support": {
+                "issues": "https://github.com/soloterm/grapheme/issues",
+                "source": "https://github.com/soloterm/grapheme/tree/v1.0.2"
+            },
+            "funding": [
+                {
+                    "url": "https://aaronfrancis.com/backstage",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/aarondfrancis",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-03-24T16:35:42+00:00"
         },
         {
             "name": "spatie/laravel-package-tools",
@@ -1404,11 +1461,48 @@
                 }
             ],
             "time": "2024-07-20T21:52:34+00:00"
+        },
+        {
+            "name": "whispphp/prompts-mouse",
+            "version": "0.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/WhispPHP/prompts-mouse.git",
+                "reference": "e8931213203bafe0584c86cd400aefd32f43745e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/WhispPHP/prompts-mouse/zipball/e8931213203bafe0584c86cd400aefd32f43745e",
+                "reference": "e8931213203bafe0584c86cd400aefd32f43745e",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Whisp\\Mouse\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ashley Hindle",
+                    "email": "hey@ashleyhindle.com"
+                }
+            ],
+            "description": "Adds mouse support to Laravel Prompts",
+            "support": {
+                "issues": "https://github.com/WhispPHP/prompts-mouse/issues",
+                "source": "https://github.com/WhispPHP/prompts-mouse/tree/0.0.1"
+            },
+            "time": "2025-04-18T21:21:42+00:00"
         }
     ],
     "packages-dev": [],
     "aliases": [],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "stability-flags": {
         "ashleyhindle/croft": 20
     },

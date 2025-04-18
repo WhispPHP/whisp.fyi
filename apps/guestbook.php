@@ -2,7 +2,7 @@
 <?php
 
 require __DIR__.'/vendor/autoload.php';
-require __DIR__.'/GuestbookPrompt.php';
 
 // Run the guestbook
-(new GuestbookPrompt)->prompt();
+$guestbook = new \Apps\GuestbookPrompt;
+$guestbook->prompt();

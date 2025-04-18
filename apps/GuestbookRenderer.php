@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
+namespace Apps;
+
 use Laravel\Prompts\Themes\Default\Renderer;
-
-require_once __DIR__.'/GuestbookPrompt.php';
-
+use SoloTerm\Grapheme\Grapheme;
 use function Laravel\Prompts\clear;
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 use Laravel\Prompts\Table;
 use Laravel\Prompts\Themes\Default\TableRenderer;
@@ -18,8 +21,260 @@ class GuestbookRenderer extends Renderer
     {
         $this->guestbook = $guestbook;
 
-        $this->renderGuestbook();
+        if ($guestbook->signing) {
+            clear();
+            echo $this->renderGuestbook();
+            $this->renderSigningForm();
+        }
 
+        return $this->renderGuestbook() . $this->renderInstructions();
+    }
+
+    public function renderInstructions(): string
+    {
+        return $this->footer('S to sign ∙ Mouse wheel to scroll entries ∙ Q to exit');
+    }
+
+    public function footer(string $text): string
+    {
+        ['cols' => $terminalWidth] = $this->guestbook->freshDimensions(); // cols() is cached, so doesn't work with window resizing, so call 'stty' again to get the _current_ width/height
+
+        $textLength = $this->_stringWidth($text);
+        $padding = max(0, (($terminalWidth - $textLength) / 2) - 1);
+
+        // TODO: Why isn't this actually centered? Though heading is?
+        return $this->dim(str_repeat(' ', (int) floor($padding)).$text);
+    }
+
+    /**
+     * Center the text in the terminal with a background color, and opposite bold text.
+     * We also add an empty line before and after the text to make it look nicer, this is the same bgColor, and the full terminal width
+     */
+    private function header(string $text): string
+    {
+        ['cols' => $terminalWidth] = $this->guestbook->freshDimensions(); // cols() is cached, so doesn't work with window resizing, so call 'stty' again to get the _current_ width/height
+
+        $textLength = mb_strlen($text);
+
+        // Calculate padding needed to center the text
+        $padding = (($terminalWidth - $textLength) / 2) - 1;
+
+        // Create the full-width string with centered text
+        $fullLine = $padding > 0 ? str_repeat(' ', (int) floor($padding)).$text.str_repeat(' ', (int) ceil($padding)) : $text;
+
+        // Style the entire line
+        $styled = $this->bold($fullLine);
+        $styled = $this->black($styled);
+        $styled = $this->bgMagenta($styled);
+        $emptyBgColorLine = $this->bgMagenta(str_repeat(' ', $terminalWidth));
+
+        return "{$emptyBgColorLine}\n{$styled}\n{$emptyBgColorLine}\n\n";
+    }
+
+    private function getEntries(bool $visible = true): array
+    {
+        // Reload the guestbook to get latest entries
+        $this->guestbook->loadGuestbook();
+        $allEntries = $this->guestbook->guestbook;
+        if (empty($allEntries)) {
+            return [];
+        }
+
+        // Get terminal dimensions
+        ['cols' => $terminalWidth] = $this->guestbook->freshDimensions();
+
+        // Determine visible entries based on scroll index
+        if ($visible) {
+            $visibleEntriesRaw = array_slice(array_reverse($allEntries), $this->guestbook->startIndex, $this->guestbook->entriesToShow());
+        } else {
+            $visibleEntriesRaw = array_reverse($allEntries);
+        }
+
+        if (empty($visibleEntriesRaw)) {
+            return [];
+        }
+
+        // Calculate actual max widths for Name and Timestamp columns from visible entries
+        $maxNameWidth = 0;
+        $maxTimestampWidth = 0;
+        foreach ($visibleEntriesRaw as $entry) {
+            $maxNameWidth = max($maxNameWidth, $this->_stringWidth($entry['name']));
+            $maxTimestampWidth = max($maxTimestampWidth, $this->_stringWidth($this->formatTimestamp($entry['timestamp'])));
+        }
+
+        // Calculate fixed structural width (borders + padding)
+        $numColumns = 3;
+        $paddingPerCellSide = 1;
+        $verticalBordersCount = $numColumns + 1; // Includes outer borders
+        $totalPaddingWidth = $numColumns * $paddingPerCellSide * 2;
+        $fixedStructureWidth = $verticalBordersCount + $totalPaddingWidth;
+
+        // Calculate the maximum allowed *content* width for the Message column
+        $maxMessageContentWidth = $terminalWidth - $fixedStructureWidth - $maxNameWidth - $maxTimestampWidth;
+        $maxMessageContentWidth = max(1, $maxMessageContentWidth); // Ensure at least 1 char width
+
+        // Format entries for display, truncating message precisely
+        return array_map(function ($entry) use ($maxMessageContentWidth) {
+            $message = $entry['message'] ?? ''; // Handle null messages
+            $originalMessageWidth = $this->_stringWidth($message);
+
+            if (empty($message)) {
+                 $truncatedMessage = '(no message)';
+                 // Recalculate width if message was empty
+                 $maxMessageContentWidth = max($maxMessageContentWidth, $this->_stringWidth($truncatedMessage));
+            } elseif ($originalMessageWidth > $maxMessageContentWidth) {
+                // Ensure space for '..'
+                $allowedLength = $maxMessageContentWidth - 2; // Width of '..'
+                $allowedLength = max(0, $allowedLength); // Prevent negative length
+                // Use mb_strimwidth for width-based truncation
+                $truncatedMessage = mb_strimwidth($message, 0, $allowedLength, '..', 'UTF-8');
+            } else {
+                $truncatedMessage = $message;
+            }
+
+            return [
+                'name' => $entry['name'],
+                'message' => $truncatedMessage,
+                'signed at' => $this->formatTimestamp($entry['timestamp']),
+            ];
+        }, $visibleEntriesRaw);
+    }
+
+    private function formatTimestamp(?string $timestamp = null): string
+    {
+        $time = $timestamp ? strtotime($timestamp) : time();
+
+        return date('D, M j, H:i T', $time);
+    }
+
+    /**
+     * Calculate the visual width of a string, handling multi-byte characters and removing ANSI formatting.
+     */
+    private function _stringWidth(?string $string): int
+    {
+        $string ??= '';
+        // Remove ANSI escape codes
+        $string = preg_replace("/\033\[[^m]*m/", '', $string);
+        // Remove terminal hyperlinks (like the ones Laravel Prompts might add)
+        $string = preg_replace('/\\033]8;[^;]*;[^\\033]*\\033\\\\/', '', $string);
+
+        $graphemeWidth = array_sum(array_map(fn ($char) => Grapheme::wcwidth($char), grapheme_str_split($string)));
+        $mbWidth = mb_strlen($string);
+        if ($graphemeWidth !== $mbWidth) {
+            return $graphemeWidth + 1;
+        }
+
+        return $graphemeWidth;
+    }
+
+    /**
+     * Renders a table with borders without external dependencies.
+     */
+    private function _renderCustomTable(array $headers, array $rows, array $widthRows = []): string
+    {
+        $colWidths = [];
+        $padding = 1; // Spaces on each side of the content
+        $numColumns = count($headers);
+
+        // Calculate required widths for fixed columns (Name: 0, Signed At: 2)
+        $requiredWidths = [];
+        $messageColIndex = 1; // Assuming Message is always the second column
+        $maxNameWidth = max(array_map(fn ($row) => $this->_stringWidth($row['name']), $widthRows));
+        $maxTimestampWidth = max(array_map(fn ($signedAt) => $this->_stringWidth($signedAt), array_column($widthRows, 'signed at')));
+        $maxMessageWidth = max(array_map(fn ($row) => $this->_stringWidth($row['message']), $widthRows));
+
+        $requiredWidths = [$maxNameWidth + $padding * 2, $maxMessageWidth + $padding * 2, $maxTimestampWidth + $padding * 2];
+
+        $verticalBordersCount = $numColumns + 1;
+        $fixedStructureWidthWithoutMessagePadding = $verticalBordersCount + array_sum($requiredWidths);
+
+        // Get terminal width
+        ['cols' => $terminalWidth] = $this->guestbook->freshDimensions();
+        $messageColTotalWidth = $terminalWidth - $fixedStructureWidthWithoutMessagePadding;
+        $messageColTotalWidth = max($this->_stringWidth($headers[$messageColIndex]) + ($padding * 2), $messageColTotalWidth); // Ensure it's at least wide enough for header+padding
+        $messageColTotalWidth = max(1 + ($padding * 2), $messageColTotalWidth); // Ensure minimum width for content + padding
+
+        // Set final column widths
+        $colWidths = $requiredWidths;
+        $colWidths[$messageColIndex] = $messageColTotalWidth;
+        ksort($colWidths); // Ensure correct order [0, 1, 2]
+
+        // Define border characters
+        $chars = [
+            'top_left' => '┌', 'top_mid' => '┬', 'top_right' => '┐',
+            'mid_left' => '├', 'mid_mid' => '┼', 'mid_right' => '┤',
+            'bottom_left' => '└', 'bottom_mid' => '┴', 'bottom_right' => '┘',
+            'horizontal' => '─', 'vertical' => '│',
+        ];
+
+        // Helper function to build horizontal lines
+        $buildHorizontalLine = function (string $left, string $mid, string $right) use ($colWidths, $chars): string {
+            $line = $left;
+            foreach ($colWidths as $index => $width) {
+                $line .= str_repeat($chars['horizontal'], $width);
+                $line .= ($index === count($colWidths) - 1) ? $right : $mid;
+            }
+            return $line;
+        };
+
+        // Helper function to build content rows
+        $buildContentRow = function (array $rowData, string $format = '<fg=default>%s</>') use ($colWidths, $chars, $padding): string {
+            $line = $chars['vertical'];
+            $rowDataNumeric = array_values($rowData); // Ensure numeric keys
+            foreach ($colWidths as $index => $colWidth) {
+                $cellContent = $rowDataNumeric[$index] ?? '';
+                $contentWidth = $this->_stringWidth($cellContent);
+                $padTotal = $colWidth - $contentWidth;
+
+                $line .= ' ' . $cellContent . str_repeat(' ', $padTotal-1);
+                $line .= $chars['vertical'];
+            }
+            return $line;
+        };
+
+        $output = [];
+
+        // Top border
+        $output[] = $buildHorizontalLine($chars['top_left'], $chars['top_mid'], $chars['top_right']);
+
+        // Header row
+        $output[] = $buildContentRow($headers, $this->dim('<fg=default>%s</>')); // Apply dim formatting to headers
+
+        // Header separator
+        $output[] = $buildHorizontalLine($chars['mid_left'], $chars['mid_mid'], $chars['mid_right']);
+
+        // Data rows
+        foreach ($rows as $row) {
+            $output[] = $buildContentRow(array_values($row)); // Ensure keys are numeric starting from 0
+        }
+
+        // Bottom border
+        $output[] = $buildHorizontalLine($chars['bottom_left'], $chars['bottom_mid'], $chars['bottom_right']);
+
+        return implode(PHP_EOL, $output);
+    }
+
+    private function renderGuestbook(): string
+    {
+        // Show header with bold text and colored background
+        $header = $this->header('✨ SIGN MY SSH GUESTBOOK, made with Whisp + Laravel Prompts ✨');
+
+        // Show latest guests that fit in the terminal
+        $guestTitle = $this->bold($this->magenta('Guestbook Entries:')).PHP_EOL;
+
+        // Use the custom table rendering method
+        $tableOutput = $this->_renderCustomTable(
+            ['Name', 'Message', 'Signed At'],
+            $this->getEntries(),
+            $this->getEntries(false),
+        );
+
+        return "{$header}{$guestTitle}\n{$tableOutput}";
+    }
+
+    private function renderSigningForm()
+    {
+        $this->guestbook->clearListeners();
         // Ask for name
         $name = text(
             label: 'What is your name?',
@@ -54,114 +309,8 @@ class GuestbookRenderer extends Renderer
 
         // Add entry with safe concurrent access
         $this->guestbook->addEntry($entry);
-
-        // Re-render the guestbook to show the new entry
-        clear();
-        $this->renderGuestbook();
-
-        // Show confirmation and pause briefly
-        info("Thank you for signing my guestbook, {$name}! 🎉");
-        sleep(1); // Give them time to see their entry
-
-        $this->guestbook->exit();
-        // TODO: This isn't the correct way of using a renderer, improve this!
-        return '';
-    }
-
-    /**
-     * Center the text in the terminal with a background color, and opposite bold text.
-     * We also add an empty line before and after the text to make it look nicer, this is the same bgColor, and the full terminal width
-     */
-    private function header(string $text): void
-    {
-        ['cols' => $terminalWidth] = $this->guestbook->freshDimensions(); // cols() is cached, so doesn't work with window resizing, so call 'stty' again to get the _current_ width/height
-
-        $textLength = mb_strlen($text);
-
-        // Calculate padding needed to center the text
-        $padding = (($terminalWidth - $textLength) / 2) - 1;
-
-        // Create the full-width string with centered text
-        $fullLine = $padding > 0 ? str_repeat(' ', floor($padding)).$text.str_repeat(' ', ceil($padding)) : $text;
-
-        // Style the entire line
-        $styled = $this->bold($fullLine);
-        $styled = $this->black($styled);
-        $styled = $this->bgMagenta($styled);
-        $emptyBgColorLine = $this->bgMagenta(str_repeat(' ', $terminalWidth));
-
-        echo "{$emptyBgColorLine}\n{$styled}\n{$emptyBgColorLine}\n\n";
-    }
-
-    private function getVisibleEntries(): array
-    {
-        // Reload the guestbook to get latest entries
-        $this->guestbook->loadGuestbook();
-        if (empty($this->guestbook)) {
-            return [];
-        }
-
-        // Calculate available height
-        $terminalHeight = $this->guestbook->terminal()->lines() - 3;
-
-        // Reserve space for:
-        // - 3 lines for header (1 line + padding)
-        // - 2 lines for "Latest Guests:" and table header
-        // - 3 lines for input prompt
-        // - 2 lines for confirmation message
-        // - x for dividers
-        $reservedLines = 13;
-
-        // Calculate how many entries we can show
-        $availableLines = $terminalHeight - $reservedLines;
-
-        // Return the most recent entries that will fit
-        $entries = array_slice(array_reverse($this->guestbook->guestbook), 0, max(0, $availableLines));
-
-        $availableWidth = $this->guestbook->terminal()->cols() - 16;
-        // We need to truncate the message to fit the available width. We know the length of the name and the timestamp, so we can subtract that from the available width and leave 2 characters for the ellipsis.
-        if (!empty($entries)) {
-            $maxNameLength = array_map(fn ($entry) => mb_strlen($entry['name']), $entries);
-            $maxTimestampLength = array_map(fn ($entry) => mb_strlen($this->formatTimestamp($entry['timestamp'])), $entries);
-        } else {
-            $maxNameLength = [8];
-            $maxTimestampLength = [8];
-        }
-
-        $maxMessageLength = $availableWidth - max($maxNameLength) - max($maxTimestampLength) - 2;
-
-        // Format entries for display
-        return array_map(function ($entry) use ($maxMessageLength) {
-            if (! empty($entry['message'])) {
-                $entry['message'] = strlen($entry['message']) > $maxMessageLength ? substr($entry['message'], 0, $maxMessageLength).'..' : $entry['message'];
-            } else {
-                $entry['message'] = '(no message)';
-            }
-
-            return [
-                'name' => $entry['name'],
-                'message' => $entry['message'],
-                'signed at' => $this->formatTimestamp($entry['timestamp']),
-            ];
-        }, $entries);
-    }
-
-    private function formatTimestamp(?string $timestamp = null): string
-    {
-        $time = $timestamp ? strtotime($timestamp) : time();
-
-        return date('D, M j, H:i T', $time);
-    }
-
-    private function renderGuestbook()
-    {
-        // Show header with bold text and colored background
-        $this->header('✨ SIGN MY SSH GUESTBOOK, made with Whisp + Laravel Prompts ✨');
-
-        // Show latest guests that fit in the terminal
-        echo $this->bold($this->magenta('Latest Guests:')).PHP_EOL;
-
-        $table = new Table(['Name', 'Message', 'Signed At'], $this->getVisibleEntries());
-        echo (new TableRenderer($table))($table);
+        $this->guestbook->signing = false;
+        $this->guestbook->listenForKeys();
+        $this->guestbook->prompt();
     }
 }
