@@ -31,6 +31,11 @@ if ($decryptedSecret === false) {
 
 // Display the secret
 clear();
+
+// TODO: Check clipboard support - if it definitely works then put the secret in the clipboard, and don't display it
+// If it _might_ work, put the secret in the clipboard and display it
+// If it doesn't work, display the secret and don't put it in the clipboard
+
 echo 'Your Secret' . PHP_EOL;
 echo str_repeat('-', mb_strlen('Your Secret')) . PHP_EOL;
 echo $decryptedSecret . PHP_EOL; // Don't mess with the display of the secret in anyway, whitespace & what not could really mess it up
