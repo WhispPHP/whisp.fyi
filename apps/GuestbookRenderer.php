@@ -157,7 +157,7 @@ class GuestbookRenderer extends Renderer
         $graphemeWidth = array_sum(array_map(fn ($char) => Grapheme::wcwidth($char), grapheme_str_split($string)));
         $mbWidth = mb_strlen($string);
         if ($graphemeWidth !== $mbWidth) {
-            return $graphemeWidth + 1;
+            return $graphemeWidth;// + 1;
         }
 
         return $graphemeWidth;
