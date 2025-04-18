@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "ashleyhindle/croft",
-            "version": "0.0.10",
+            "version": "0.0.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ashleyhindle/croft.git",
-                "reference": "94eabf5b46f2721095a9580926f563aadce4f8ad"
+                "reference": "92cb7d9cb48f941bae343f1b49c5f92971a8073a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ashleyhindle/croft/zipball/94eabf5b46f2721095a9580926f563aadce4f8ad",
-                "reference": "94eabf5b46f2721095a9580926f563aadce4f8ad",
+                "url": "https://api.github.com/repos/ashleyhindle/croft/zipball/92cb7d9cb48f941bae343f1b49c5f92971a8073a",
+                "reference": "92cb7d9cb48f941bae343f1b49c5f92971a8073a",
                 "shasum": ""
             },
             "require": {
@@ -73,9 +73,9 @@
             ],
             "support": {
                 "issues": "https://github.com/ashleyhindle/croft/issues",
-                "source": "https://github.com/ashleyhindle/croft/tree/0.0.10"
+                "source": "https://github.com/ashleyhindle/croft/tree/0.0.11"
             },
-            "time": "2025-04-18T16:44:44+00:00"
+            "time": "2025-04-18T16:53:57+00:00"
         },
         {
             "name": "graham-campbell/result-type",
