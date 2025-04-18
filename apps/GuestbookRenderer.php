@@ -19,7 +19,7 @@ class GuestbookRenderer extends Renderer
 
         if ($guestbook->signing) {
             clear();
-            echo $this->renderGuestbook();
+            echo $this->renderGuestbook() . PHP_EOL;
             $this->renderSigningForm();
         }
 
