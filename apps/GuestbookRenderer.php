@@ -102,7 +102,7 @@ class GuestbookRenderer extends Renderer
         }
 
         // Calculate available height
-        $terminalHeight = $this->guestbook->terminal()->lines() - 2;
+        $terminalHeight = $this->guestbook->terminal()->lines() - 3;
 
         // Reserve space for:
         // - 3 lines for header (1 line + padding)
