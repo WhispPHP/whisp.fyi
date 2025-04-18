@@ -14,7 +14,7 @@ class WhoWouldGiveAGreatTalkAtLaraconTool extends AbstractTool
 
     public function getDescription(): string
     {
-        return 'Get a list of weird bald British people who would give a great talk at Laracon';
+        return 'Get a list of who would give a great talk at Laracon';
     }
 
     public function getInputSchema(): array
