@@ -183,14 +183,14 @@ class GuestbookRenderer extends Renderer
         $maxTimestampWidth = max(array_map(fn ($signedAt) => $this->_stringWidth($signedAt), array_column($widthRows, 'signed at')));
         $maxMessageWidth = max(array_map(fn ($row) => $this->_stringWidth($row['message']), $widthRows));
 
-        $requiredWidths = [$maxNameWidth + $padding * 2, $maxMessageWidth + $padding * 2, $maxTimestampWidth + $padding * 2];
+        $requiredWidths = [$maxNameWidth + $padding * 2, 4, $maxTimestampWidth + $padding * 2];
 
         $verticalBordersCount = $numColumns + 1;
         $fixedStructureWidthWithoutMessagePadding = $verticalBordersCount + array_sum($requiredWidths);
 
         // Get terminal width
         ['cols' => $terminalWidth] = $this->guestbook->freshDimensions();
-        $messageColTotalWidth = $terminalWidth - $fixedStructureWidthWithoutMessagePadding;
+        $messageColTotalWidth = $terminalWidth - $fixedStructureWidthWithoutMessagePadding - 8;
         $messageColTotalWidth = max($this->_stringWidth($headers[$messageColIndex]) + ($padding * 2), $messageColTotalWidth); // Ensure it's at least wide enough for header+padding
         $messageColTotalWidth = max(1 + ($padding * 2), $messageColTotalWidth); // Ensure minimum width for content + padding
 
