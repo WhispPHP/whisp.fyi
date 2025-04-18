@@ -157,4 +157,43 @@ class GuestbookPrompt extends Prompt
     {
         return true;
     }
+
+    protected function render(): void
+    {
+        $this->terminal()->initDimensions();
+
+        $frame = $this->renderTheme();
+
+        if ($frame === $this->prevFrame) {
+            return;
+        }
+
+        if ($this->state === 'initial') {
+            static::output()->write($frame);
+
+            $this->state = 'active';
+            $this->prevFrame = $frame;
+
+            return;
+        }
+
+        $lineWhereDifferenceOccurs = 0;
+        $newLines = explode(PHP_EOL, $frame);
+        $oldLines = explode(PHP_EOL, $this->prevFrame);
+        foreach ($newLines as $line => $newLine) {
+            if ($newLine !== $oldLines[$line]) {
+                $lineWhereDifferenceOccurs = $line;
+                break;
+            }
+        }
+
+        $renderableLines = array_slice($newLines, $lineWhereDifferenceOccurs-1);
+
+        // Move the cursor to the start of the line where the difference occurs
+        static::writeDirectly("\e[{$lineWhereDifferenceOccurs};0H");
+        // static::writeDirectly("\e[J");
+        $this->output()->write(implode(PHP_EOL, $renderableLines));
+
+        $this->prevFrame = $frame;
+    }
 }
