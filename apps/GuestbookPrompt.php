@@ -19,6 +19,7 @@ class GuestbookPrompt extends Prompt
     private Mouse $mouse;
 
     public int $startIndex = 0;
+    public array $prevDimensions;
 
     public function __construct()
     {
@@ -29,6 +30,7 @@ class GuestbookPrompt extends Prompt
 
         $this->setupMouseListening();
         $this->listenForKeys();
+        $this->prevDimensions = $this->freshDimensions();
     }
 
     protected function setupMouseListening(): void
@@ -188,10 +190,16 @@ class GuestbookPrompt extends Prompt
             }
         }
 
-        $renderableLines = array_slice($newLines, $lineWhereDifferenceOccurs - 1);
+        if ($this->prevDimensions !== $this->freshDimensions()) {
+            $this->prevDimensions = $this->freshDimensions();
+            $lineWhereDifferenceOccurs = 0;
+        }
+
+        $renderableLines = array_slice($newLines, max(0, $lineWhereDifferenceOccurs - 1));
 
         // Move the cursor to the start of the line where the difference occurs
         static::writeDirectly("\e[{$lineWhereDifferenceOccurs};0H");
+        static::writeDirectly("\e[J");
         $this->output()->write(implode(PHP_EOL, $renderableLines));
 
         $this->prevFrame = $frame;
