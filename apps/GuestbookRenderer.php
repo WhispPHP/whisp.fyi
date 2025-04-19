@@ -145,7 +145,7 @@ class GuestbookRenderer extends Renderer
     {
         $time = $timestamp ? strtotime($timestamp) : time();
 
-        return date('D, M j, H:i T', $time);
+        return date('D, M j, H:i', $time);
     }
 
     /**
@@ -181,12 +181,11 @@ class GuestbookRenderer extends Renderer
         $requiredWidths = [];
         $messageColIndex = 1; // Assuming Message is always the second column
         $maxNameWidth = max(array_map(fn ($row) => $this->_stringWidth($row['name']), $widthRows));
-        $maxTimestampWidth = max(array_map(fn ($signedAt) => $this->_stringWidth($signedAt), array_column($widthRows, 'signed at')));
-        $maxMessageWidth = max(array_map(fn ($row) => $this->_stringWidth($row['message']), $widthRows));
+        $maxTimestampWidth = max(array_map(fn ($timestamp) => $this->_stringWidth($timestamp), array_column($widthRows, 'signed at')));
 
         $requiredWidths = [$maxNameWidth + $padding * 2, 4, $maxTimestampWidth + $padding * 2];
 
-        $verticalBordersCount = $numColumns + 1;
+        $verticalBordersCount = $numColumns + 2;
         $fixedStructureWidthWithoutMessagePadding = $verticalBordersCount + array_sum($requiredWidths);
 
         // Get terminal width
@@ -225,6 +224,7 @@ class GuestbookRenderer extends Renderer
             $rowDataNumeric = array_values($rowData); // Ensure numeric keys
             foreach ($colWidths as $index => $colWidth) {
                 $cellContent = $rowDataNumeric[$index] ?? '';
+                $cellContent = mb_substr($cellContent, 0, $colWidth);
                 $contentWidth = $this->_stringWidth($cellContent);
                 $padTotal = $colWidth - $contentWidth;
 
