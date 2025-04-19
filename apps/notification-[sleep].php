@@ -1,10 +1,13 @@
 <?php
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
-use function Laravel\Prompts\{info, intro, outro};
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
 
-function checkTerminalFocus(): ?bool {
+function checkTerminalFocus(): ?bool
+{
     // Send focus query
     fwrite(STDOUT, "\033]104;?\007");
 
@@ -29,16 +32,17 @@ function checkTerminalFocus(): ?bool {
     return null; // Terminal doesn't support focus reporting
 }
 
-function sendNotification(string $message): void {
+function sendNotification(string $message): void
+{
     // $focusState = checkTerminalFocus();
 
     // Send notification if terminal is not in focus or doesn't support focus reporting
     // if ($focusState === false || $focusState === null) {
-        echo "\033]9;{$message}\007";
+    echo "\033]9;{$message}\007";
     // }
 }
 
-intro('It is notification time, sleeping for ' . $argv[1] . ' seconds!');
+intro('It is notification time, sleeping for '.$argv[1].' seconds!');
 
 // Save current terminal settings
 $termios = shell_exec('stty -g');
@@ -51,9 +55,9 @@ sleep($argv[1]);
 sendNotification('👋 Howdy from Whisp 🔮, keep being awesome! 💪');
 
 // From testing it worked in Ghostty & iTerm, but not Warp or Terminal.app.
-info('Not all terminals support this unfortunately, but let\'s give it a bash.' . PHP_EOL);
+info('Not all terminals support this unfortunately, but let\'s give it a bash.'.PHP_EOL);
 
-outro('Check your notification center') . PHP_EOL;
+outro('Check your notification center').PHP_EOL;
 
 // Restore terminal settings
 shell_exec("stty $termios");

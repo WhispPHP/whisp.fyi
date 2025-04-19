@@ -5,7 +5,8 @@
         "hidehalo/nanoid-php": "^2.0",
         "ashleyhindle/croft": "dev-main|^0.0",
         "soloterm/grapheme": "^1.0",
-        "whispphp/prompts-mouse": "^0.0"
+        "whispphp/prompts-mouse": "^0.0",
+        "laravel/pint": "dev-main"
     },
     "minimum-stability": "dev",
     "autoload": {

@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace Apps;
 
 use Laravel\Prompts\Prompt;
-use Apps\GuestbookRenderer;
 use Whisp\Mouse\Mouse;
 use Whisp\Mouse\MouseButton;
 
 class GuestbookPrompt extends Prompt
 {
     public bool $signing = false;
+
     public array $guestbook = [];
 
     private string $storageFile;
 
     private Mouse $mouse;
+
     public int $startIndex = 0;
 
     public function __construct()
@@ -30,19 +31,9 @@ class GuestbookPrompt extends Prompt
         $this->listenForKeys();
     }
 
-    public function entriesToShow(): int
-    {
-        $entriesToShow = $this->terminal()->lines() - 3 - 9;
-        if ($this->signing) {
-            $entriesToShow -= 8;
-        }
-
-        return $entriesToShow;
-    }
-
     protected function setupMouseListening(): void
     {
-        $this->mouse = new Mouse();
+        $this->mouse = new Mouse;
         static::writeDirectly($this->mouse->enableBasic());
         register_shutdown_function(function () {
             static::writeDirectly($this->mouse->disable());
@@ -84,6 +75,16 @@ class GuestbookPrompt extends Prompt
                 };
             }
         });
+    }
+
+    public function entriesToShow(): int
+    {
+        $entriesToShow = $this->terminal()->lines() - 3 - 9;
+        if ($this->signing) {
+            $entriesToShow -= 8;
+        }
+
+        return $entriesToShow;
     }
 
     public function sign()
@@ -187,7 +188,7 @@ class GuestbookPrompt extends Prompt
             }
         }
 
-        $renderableLines = array_slice($newLines, $lineWhereDifferenceOccurs-1);
+        $renderableLines = array_slice($newLines, $lineWhereDifferenceOccurs - 1);
 
         // Move the cursor to the start of the line where the difference occurs
         static::writeDirectly("\e[{$lineWhereDifferenceOccurs};0H");

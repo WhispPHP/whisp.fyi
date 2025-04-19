@@ -21,7 +21,7 @@ class WhoWouldGiveAGreatTalkAtLaraconTool extends AbstractTool
     {
         return [
             'type' => 'object',
-            'properties' => (object)[],
+            'properties' => (object) [],
             'required' => [],
         ];
     }

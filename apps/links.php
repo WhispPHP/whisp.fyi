@@ -1,4 +1,5 @@
 <?php
+
 echo "\n\033[44mLet's have a quick look at how to create links in the terminal.\033[0m\n\n";
 
 function blueText(string $text): string
@@ -13,12 +14,12 @@ function linkText(string $url, string $text): string
     return "\033]8;;{$url}\007[{$text}]\033]8;;\033\\";
 }
 
-echo "I am regular text, but: ";
-echo linkText("https://x.com/ashleyhindle?1", blueText("Click here to follow me on X"));
+echo 'I am regular text, but: ';
+echo linkText('https://x.com/ashleyhindle?1', blueText('Click here to follow me on X'));
 
 echo "\n\n";
 
-echo linkText("https://x.com/ashleyhindle?2", blueText("https://x.com/ashleyhindle")) . " is a link, pretty snazzy hey!";
+echo linkText('https://x.com/ashleyhindle?2', blueText('https://x.com/ashleyhindle')).' is a link, pretty snazzy hey!';
 
 echo "\n\n";
 

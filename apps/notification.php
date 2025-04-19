@@ -1,19 +1,23 @@
 <?php
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
-use function Laravel\Prompts\{info, intro, outro};
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\outro;
 
-enum FocusState {
+enum FocusState
+{
     case FOCUSED;
     case UNFOCUSED;
     case UNSUPPORTED;
 }
 
-function checkTerminalFocus(): FocusState {
+function checkTerminalFocus(): FocusState
+{
     // Query terminal focus state using OSC 104
     // OSC 104;? queries the current focus state
-    fwrite(STDOUT, "Howdy");
+    fwrite(STDOUT, 'Howdy');
     fwrite(STDOUT, "\033]104;?\007");
     fflush(STDOUT);
 
@@ -23,7 +27,7 @@ function checkTerminalFocus(): FocusState {
     $response = fread(STDIN, 1024);
 
     // Reset stream to blocking mode
-    var_dump("STDIN response:", bin2hex($response));
+    var_dump('STDIN response:', bin2hex($response));
 
     stream_set_blocking(STDIN, true);
 
@@ -36,18 +40,19 @@ function checkTerminalFocus(): FocusState {
     return FocusState::UNSUPPORTED; // Terminal doesn't support focus reporting
 }
 
-function sendNotification(string $message): void {
+function sendNotification(string $message): void
+{
     // $focusState = checkTerminalFocus();
 
     // if ($focusState === FocusState::UNSUPPORTED) {
-        // info('Your terminal doesn\'t support focus reporting, so we are going to notify regardless :)' . PHP_EOL);
+    // info('Your terminal doesn\'t support focus reporting, so we are going to notify regardless :)' . PHP_EOL);
     // } elseif ($focusState === FocusState::UNFOCUSED) {
-        // info('Terminal is not in focus, sending notification to get your attention..' . PHP_EOL);
+    // info('Terminal is not in focus, sending notification to get your attention..' . PHP_EOL);
     // }
 
     // Send notification if terminal is not in focus or doesn't support focus reporting
     // if ($focusState === FocusState::UNFOCUSED || $focusState === FocusState::UNSUPPORTED) {
-        echo "\033]9;{$message}\007";
+    echo "\033]9;{$message}\007";
     // }
 }
 
@@ -63,9 +68,9 @@ shell_exec('stty -echo -icanon');
 sendNotification('👋 Howdy from Whisp 🔮, keep being awesome! 💪');
 
 // From testing it worked in Ghostty & iTerm, but not Warp or Terminal.app.
-info('Not all terminals support this unfortunately, but let\'s give it a bash.' . PHP_EOL);
+info('Not all terminals support this unfortunately, but let\'s give it a bash.'.PHP_EOL);
 
-outro('Check your notification center') . PHP_EOL;
+outro('Check your notification center').PHP_EOL;
 
 // Restore terminal settings
 shell_exec("stty $termios");

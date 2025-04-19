@@ -6,6 +6,7 @@ namespace Apps;
 
 use Laravel\Prompts\Themes\Default\Renderer;
 use SoloTerm\Grapheme\Grapheme;
+
 use function Laravel\Prompts\clear;
 use function Laravel\Prompts\text;
 
@@ -19,11 +20,11 @@ class GuestbookRenderer extends Renderer
 
         if ($guestbook->signing) {
             clear();
-            echo $this->renderGuestbook() . PHP_EOL;
+            echo $this->renderGuestbook().PHP_EOL;
             $this->renderSigningForm();
         }
 
-        return $this->renderGuestbook() . $this->renderInstructions() . PHP_EOL;
+        return $this->renderGuestbook().$this->renderInstructions().PHP_EOL;
     }
 
     public function renderInstructions(): string
@@ -81,7 +82,11 @@ class GuestbookRenderer extends Renderer
 
         // Determine visible entries based on scroll index
         if ($visible) {
-            $visibleEntriesRaw = array_slice(array_reverse($allEntries), $this->guestbook->startIndex, $this->guestbook->entriesToShow());
+            $visibleEntriesRaw = array_slice(
+                array_reverse($allEntries),
+                $this->guestbook->startIndex,
+                $this->guestbook->entriesToShow()
+            );
         } else {
             $visibleEntriesRaw = array_reverse($allEntries);
         }
@@ -115,9 +120,9 @@ class GuestbookRenderer extends Renderer
             $originalMessageWidth = $this->_stringWidth($message);
 
             if (empty($message)) {
-                 $truncatedMessage = '(no message)';
-                 // Recalculate width if message was empty
-                 $maxMessageContentWidth = max($maxMessageContentWidth, $this->_stringWidth($truncatedMessage));
+                $truncatedMessage = '(no message)';
+                // Recalculate width if message was empty
+                $maxMessageContentWidth = max($maxMessageContentWidth, $this->_stringWidth($truncatedMessage));
             } elseif ($originalMessageWidth > $maxMessageContentWidth) {
                 // Ensure space for '..'
                 $allowedLength = $maxMessageContentWidth - 2; // Width of '..'
@@ -157,7 +162,7 @@ class GuestbookRenderer extends Renderer
         $graphemeWidth = array_sum(array_map(fn ($char) => Grapheme::wcwidth($char), grapheme_str_split($string)));
         $mbWidth = mb_strlen($string);
         if ($graphemeWidth !== $mbWidth) {
-            return $graphemeWidth;// + 1;
+            return $graphemeWidth; // + 1;
         }
 
         return $graphemeWidth;
@@ -210,11 +215,12 @@ class GuestbookRenderer extends Renderer
                 $line .= str_repeat($chars['horizontal'], $width);
                 $line .= ($index === count($colWidths) - 1) ? $right : $mid;
             }
+
             return $line;
         };
 
         // Helper function to build content rows
-        $buildContentRow = function (array $rowData, string $format = '<fg=default>%s</>') use ($colWidths, $chars, $padding): string {
+        $buildContentRow = function (array $rowData, string $format = '<fg=default>%s</>') use ($colWidths, $chars): string {
             $line = $chars['vertical'];
             $rowDataNumeric = array_values($rowData); // Ensure numeric keys
             foreach ($colWidths as $index => $colWidth) {
@@ -222,9 +228,10 @@ class GuestbookRenderer extends Renderer
                 $contentWidth = $this->_stringWidth($cellContent);
                 $padTotal = $colWidth - $contentWidth;
 
-                $line .= ' ' . $cellContent . str_repeat(' ', max(0, $padTotal-1));
+                $line .= ' '.$cellContent.str_repeat(' ', max(0, $padTotal - 1));
                 $line .= $chars['vertical'];
             }
+
             return $line;
         };
 
