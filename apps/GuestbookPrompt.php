@@ -121,13 +121,13 @@ class GuestbookPrompt extends Prompt
         $fp = fopen($this->storageFile, 'c+');
 
         if (! $fp) {
-            throw new RuntimeException('Could not open guestbook file for writing');
+            throw new \RuntimeException('Could not open guestbook file for writing');
         }
 
         try {
             // Get an exclusive lock
             if (! flock($fp, LOCK_EX)) {
-                throw new RuntimeException('Could not lock guestbook file');
+                throw new \RuntimeException('Could not lock guestbook file');
             }
 
             // Read the current contents

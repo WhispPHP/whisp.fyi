@@ -111,7 +111,7 @@ class GuestbookRenderer extends Renderer
         $fixedStructureWidth = $verticalBordersCount + $totalPaddingWidth;
 
         // Calculate the maximum allowed *content* width for the Message column
-        $maxMessageContentWidth = $terminalWidth - $fixedStructureWidth - $maxNameWidth - $maxTimestampWidth;
+        $maxMessageContentWidth = $terminalWidth - $fixedStructureWidth - $maxNameWidth - $maxTimestampWidth - 8;
         $maxMessageContentWidth = max(1, $maxMessageContentWidth); // Ensure at least 1 char width
 
         // Format entries for display, truncating message precisely
@@ -191,7 +191,7 @@ class GuestbookRenderer extends Renderer
 
         // Get terminal width
         ['cols' => $terminalWidth] = $this->guestbook->freshDimensions();
-        $messageColTotalWidth = $terminalWidth - $fixedStructureWidthWithoutMessagePadding - 8;
+        $messageColTotalWidth = $terminalWidth - $fixedStructureWidthWithoutMessagePadding;
         $messageColTotalWidth = max($this->_stringWidth($headers[$messageColIndex]) + ($padding * 2), $messageColTotalWidth); // Ensure it's at least wide enough for header+padding
         $messageColTotalWidth = max(1 + ($padding * 2), $messageColTotalWidth); // Ensure minimum width for content + padding
 
