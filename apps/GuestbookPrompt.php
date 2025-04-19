@@ -191,7 +191,6 @@ class GuestbookPrompt extends Prompt
 
         // Move the cursor to the start of the line where the difference occurs
         static::writeDirectly("\e[{$lineWhereDifferenceOccurs};0H");
-        // static::writeDirectly("\e[J");
         $this->output()->write(implode(PHP_EOL, $renderableLines));
 
         $this->prevFrame = $frame;
