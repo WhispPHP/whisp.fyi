@@ -99,7 +99,8 @@ class GuestbookRenderer extends Renderer
         $maxNameWidth = 0;
         $maxTimestampWidth = 0;
         foreach ($visibleEntriesRaw as $entry) {
-            $maxNameWidth = max($maxNameWidth, $this->_stringWidth($entry['name']));
+            $name = mb_substr($entry['name'], 0, 30);
+            $maxNameWidth = max($maxNameWidth, $this->_stringWidth($name));
             $maxTimestampWidth = max($maxTimestampWidth, $this->_stringWidth($this->formatTimestamp($entry['timestamp'])));
         }
 
@@ -133,8 +134,10 @@ class GuestbookRenderer extends Renderer
                 $truncatedMessage = $message;
             }
 
+            $name = mb_substr($entry['name'], 0, 30);
+
             return [
-                'name' => $entry['name'],
+                'name' => $name,
                 'message' => $truncatedMessage,
                 'signed at' => $this->formatTimestamp($entry['timestamp']),
             ];
@@ -285,7 +288,7 @@ class GuestbookRenderer extends Renderer
             required: true,
             validate: fn (string $value) => match (true) {
                 strlen($value) < 2 => 'The name must be at least 2 characters.',
-                strlen($value) > 40 => 'The name must not exceed 40 characters.',
+                strlen($value) > 30 => 'The name must not exceed 30 characters.',
                 default => null
             },
             hint: 'This will be public in the guestbook.'
@@ -298,7 +301,7 @@ class GuestbookRenderer extends Renderer
             required: false,
             hint: 'Your message must be fewer than 50 characters.',
             validate: fn (string $value) => match (true) {
-                strlen($value) > 50 => 'Your message must be fewer than 50 characters.',
+                strlen($value) > 42 => 'Your message must be fewer than 42 characters.',
                 default => null
             }
         );
