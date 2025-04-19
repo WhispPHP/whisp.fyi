@@ -190,16 +190,20 @@ class GuestbookPrompt extends Prompt
             }
         }
 
+        $clearDown = false;
         if ($this->prevDimensions !== $this->freshDimensions()) {
             $this->prevDimensions = $this->freshDimensions();
             $lineWhereDifferenceOccurs = 0;
+            $clearDown = true;
         }
 
         $renderableLines = array_slice($newLines, max(0, $lineWhereDifferenceOccurs - 1));
 
         // Move the cursor to the start of the line where the difference occurs
         static::writeDirectly("\e[{$lineWhereDifferenceOccurs};0H");
-        static::writeDirectly("\e[J");
+        if ($clearDown) {
+            static::writeDirectly("\e[J");
+        }
         $this->output()->write(implode(PHP_EOL, $renderableLines));
 
         $this->prevFrame = $frame;
