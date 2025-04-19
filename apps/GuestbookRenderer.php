@@ -224,7 +224,7 @@ class GuestbookRenderer extends Renderer
             $rowDataNumeric = array_values($rowData); // Ensure numeric keys
             foreach ($colWidths as $index => $colWidth) {
                 $cellContent = $rowDataNumeric[$index] ?? '';
-                $cellContent = mb_substr($cellContent, 0, $colWidth);
+                $cellContent = mb_substr($cellContent, 0, $colWidth - 1);
                 $contentWidth = $this->_stringWidth($cellContent);
                 $padTotal = $colWidth - $contentWidth;
 
