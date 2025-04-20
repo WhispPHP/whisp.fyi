@@ -1,6 +1,6 @@
 {
     "require": {
-        "whispphp/whisp": "dev-main|^1.0"
+        "whispphp/whisp": "^1.0"
     },
     "autoload": {
         "psr-4": {

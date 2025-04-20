@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "dc38cc5d0be9dbd85405f22c97aecfa4",
+    "content-hash": "96b4eba8e4aeee4ac62bc613da208d89",
     "packages": [
         {
             "name": "paragonie/constant_time_encoding",
@@ -337,9 +337,7 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "whispphp/whisp": 20
-    },
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},
