@@ -14,10 +14,23 @@ $prompt = new class extends Laravel\Prompts\Prompt
     {
         return true;
     }
-};
-$cols = $prompt->terminal()->cols();
-$rows = $prompt->terminal()->lines();
 
+    public function freshDimensions(): array
+    {
+        // Technically we could unset the env var so it's not cached, then 'cols/lines' would call this for us but :shrug:
+        $this->terminal()->initDimensions();
+
+        return [
+            'cols' => $this->terminal()->cols(),
+            'lines' => $this->terminal()->lines(),
+        ];
+    }
+};
+
+
+['cols' => $cols, 'lines' => $rows] = $prompt->freshDimensions();
+
+var_dump($cols . 'x' . $rows);
 // Confetti
 // Center a box saying "You won! The elephant _is_ called _name_, congrats!"
 // Then, around it we generate confetti that falls down - so it should slowly drift down from the top of the screen, different colors, different sizes, different speeds, sometimes wiggling side to side slightly
@@ -67,11 +80,23 @@ pcntl_signal(SIGINT, function () {
     exit;
 });
 
+pcntl_signal(SIGWINCH, function () use ($prompt) {
+    global $cols, $rows;
+    ['cols' => $cols, 'lines' => $rows] = $prompt->freshDimensions();
+    // TODO: Clear the entire screen as the message could be much higher now too, can't trust 'y' from this point on
+    // Hmmmm, do we calculate the Y difference from the previous frame, then we know if any have jumped down? because of wrapping to the next line?
+});
+
 while (microtime(true) - $startTime < $maxTime && ! $allLanded($confetti)) {
     // Process any pending signals
     pcntl_signal_dispatch();
 
-    clear();
+    $lowestY = 1;
+    $ys = array_column($confetti, 'y');
+    $lowestY = (int)floor(min($ys));
+    $prompt->moveCursor(0, min(1, $lowestY));
+    echo "\e[{$lowestY};0H";
+    echo "\e[J";
 
     foreach ($confetti as &$confettiItem) {
         echo sprintf("\033[%d;%dH", floor($confettiItem['y']), $confettiItem['x']);
@@ -88,7 +113,7 @@ while (microtime(true) - $startTime < $maxTime && ! $allLanded($confetti)) {
         }
     }
 
-    $celebrationMessage = sprintf(" You won something! Well, you could have? I'm not sure tbh, but enjoy the confetti regardless");
+    $celebrationMessage = sprintf(" You won something! Well, not really, but enjoy the confetti regardless");
     $padding = 4;
     $celebrationMessageLength = strlen($celebrationMessage) + ($padding * 2);
     $celebrationMessage = $prompt->bold($celebrationMessage);
@@ -103,6 +128,7 @@ while (microtime(true) - $startTime < $maxTime && ! $allLanded($confetti)) {
 
     echo sprintf("\033[%d;%dH", $cursorY + 1, $cursorX);
     echo $prompt->bgGreen(str_repeat(' ', $celebrationMessageLength));
+
 
     $prompt->hideCursor();
     usleep(80000);
