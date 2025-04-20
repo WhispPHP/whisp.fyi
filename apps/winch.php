@@ -1,15 +1,18 @@
 <?php
 
-// TODO: Move to the proper Prompt class, maybe add Chewie/Termwind/Screen/similar for a full TUI ecosystem
-
-declare(strict_types=1);
-
 require_once realpath(__DIR__.'/vendor/autoload.php');
-
-use function Laravel\Prompts\clear;
 
 $prompt = new class extends Laravel\Prompts\Prompt
 {
+    public int $cols;
+    public int $rows;
+
+    public function __construct()
+    {
+        $this->registerSignalHandlers();
+        $this->freshDimensions();
+    }
+
     public function value(): mixed
     {
         return true;
@@ -17,54 +20,76 @@ $prompt = new class extends Laravel\Prompts\Prompt
 
     public function freshDimensions(): array
     {
-        // Technically we could unset the env var so it's not cached, then 'cols/lines' would call this for us but :shrug:
         $this->terminal()->initDimensions();
+        $this->cols = $this->terminal()->cols();
+        $this->rows = $this->terminal()->lines();
 
         return [
-            'cols' => $this->terminal()->cols(),
-            'lines' => $this->terminal()->lines(),
+            'cols' => $this->cols,
+            'lines' => $this->rows,
         ];
+    }
+
+    public function registerSignalHandlers()
+    {
+        pcntl_signal(SIGINT, function () {
+            echo "\033[?25h"; // Show cursor
+            exit;
+        });
+
+        pcntl_signal(SIGWINCH, function () {
+            // Get fresh dimensions from stty (non-PHP apps call TIOCGWINSZ)
+            $this->freshDimensions();
+        });
     }
 };
 
-['cols' => $cols, 'lines' => $rows] = $prompt->freshDimensions();
+$startTime = time();
+$fullWidth = 14;
+$startX = 3;
+$startY = 2;
+$lastRows = $prompt->rows;
+$lastCols = $prompt->cols;
 
-// Register signal handler before the loop
-pcntl_signal(SIGINT, function () {
-    echo "\033[?25h"; // Show cursor
-    exit;
-});
+$drawMessage = function () use ($prompt, $fullWidth, $startX, $startY) {
+    $paddedX = str_pad($prompt->cols, 4, ' ', STR_PAD_LEFT);
+    $paddedY = str_pad($prompt->rows, 4, ' ', STR_PAD_RIGHT);
+    $padding = str_repeat(' ', ($fullWidth - 2 - strlen($paddedX) - strlen($paddedY)) / 2);
+    $celebrationMessage = $prompt->bold(sprintf("%s%s x %s%s", $padding, $paddedX, $paddedY, $padding));
+    echo sprintf("\033[%d;%dH", $startY+1, $startX);
+    echo $prompt->bgMagenta($prompt->black($celebrationMessage));
+};
 
-pcntl_signal(SIGWINCH, function () use ($prompt) {
-    global $cols, $rows;
-    ['cols' => $cols, 'lines' => $rows] = $prompt->freshDimensions();
-});
+$draw = function () use ($prompt, $fullWidth, $drawMessage, $startX, $startY) {
+    $paddingString = str_repeat(' ', $fullWidth / 2);
+    echo "\033[H\033[J"; // clear screen
 
-$maxTime = 60000000; // 60 seconds in microseconds
-$startTime = microtime(true);
+    // First line of box, green line for padding
+    echo sprintf("\033[%d;%dH", $startY, $startX);
+    echo $prompt->bgGreen($paddingString) . $prompt->bgMagenta(' ') . $prompt->bgGreen($paddingString);
 
-while (microtime(true) - $startTime < $maxTime) {
+    $drawMessage();
+
+    // Third line of box, green line for padding
+    echo sprintf("\033[%d;%dH", $startY+2, $startX);
+    echo $prompt->bgGreen($paddingString) . $prompt->bgMagenta(' ') . $prompt->bgGreen($paddingString);
+
+    $prompt->hideCursor();
+};
+
+// Initial render - clear everything, draw everything
+$draw();
+
+while (time() - $startTime < 60) { // Run max of 60 seconds
     // Process any pending signals
     pcntl_signal_dispatch();
 
-    $celebrationMessage = sprintf(" %d x %d", $cols, $rows);
-    $padding = 4;
-    $celebrationMessageLength = strlen($celebrationMessage) + ($padding * 2);
-    $celebrationMessage = $prompt->bold($celebrationMessage);
-    $cursorX = floor(($cols - $celebrationMessageLength) / 2);
-    $cursorY = floor(($rows - 1) / 2);
+    // Changed resolution - clear the prior box, draw the box in the middle
+    if ($lastCols !== $prompt->cols || $lastRows !== $prompt->rows) {
+        $drawMessage();
+    }
 
-    clear();
-    echo sprintf("\033[%d;%dH", $cursorY - 1, $cursorX);
-    echo $prompt->bgGreen(str_repeat(' ', $celebrationMessageLength));
-
-    echo sprintf("\033[%d;%dH", $cursorY, $cursorX);
-    echo $prompt->bgGreen(str_repeat(' ', $padding).$prompt->black($celebrationMessage).str_repeat(' ', $padding));
-
-    echo sprintf("\033[%d;%dH", $cursorY + 1, $cursorX);
-    echo $prompt->bgGreen(str_repeat(' ', $celebrationMessageLength));
-
-
-    $prompt->hideCursor();
-    usleep(80000);
+    usleep(40000);
+    $lastCols = $prompt->cols;
+    $lastRows = $prompt->rows;
 }
