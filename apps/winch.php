@@ -56,22 +56,26 @@ $drawMessage = function () use ($prompt, $fullWidth, $startX, $startY) {
     $paddedY = str_pad($prompt->rows, 4, ' ', STR_PAD_RIGHT);
     $padding = str_repeat(' ', ($fullWidth - 2 - strlen($paddedX) - strlen($paddedY)) / 2);
     $celebrationMessage = $prompt->bold(sprintf("%s%s x %s%s", $padding, $paddedX, $paddedY, $padding));
-    echo sprintf("\033[%d;%dH", $startY+1, $startX);
-    echo $prompt->bgMagenta($prompt->black($celebrationMessage));
+    $output = sprintf("\033[%d;%dH", $startY+1, $startX);
+    $output .= $prompt->bgMagenta($prompt->black($celebrationMessage));
+
+    return $output;
 };
 
 $draw = function () use ($prompt, $fullWidth, $drawMessage, $startX, $startY) {
     $paddingString = str_repeat(' ', $fullWidth / 2);
 
     // First line of box, green line for padding
-    echo sprintf("\033[%d;%dH", $startY, $startX);
-    echo $prompt->bgGreen($paddingString) . $prompt->bgMagenta(' ') . $prompt->bgGreen($paddingString);
+    $output = sprintf("\033[%d;%dH", $startY, $startX);
+    $output .= $prompt->bgGreen($paddingString) . $prompt->bgMagenta(' ') . $prompt->bgGreen($paddingString);
 
-    $drawMessage();
+    $output .= $drawMessage();
 
     // Third line of box, green line for padding
-    echo sprintf("\033[%d;%dH", $startY+2, $startX);
-    echo $prompt->bgGreen($paddingString) . $prompt->bgMagenta(' ') . $prompt->bgGreen($paddingString);
+    $output .= sprintf("\033[%d;%dH", $startY+2, $startX);
+    $output .= $prompt->bgGreen($paddingString) . $prompt->bgMagenta(' ') . $prompt->bgGreen($paddingString);
+
+    echo $output;
 
     $prompt->hideCursor();
 };
