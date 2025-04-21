@@ -7,7 +7,7 @@ declare(strict_types=1);
 require_once realpath(__DIR__.'/vendor/autoload.php');
 
 use function Laravel\Prompts\clear;
-$responsive = !empty($argv[1]);
+$responsive = !empty($argv[1]) || getenv('RESPONSIVE');
 
 $prompt = new class extends Laravel\Prompts\Prompt
 {
