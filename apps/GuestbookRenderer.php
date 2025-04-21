@@ -223,6 +223,23 @@ class GuestbookRenderer extends Renderer
         };
 
         // Helper function to build content rows
+        $buildHeaderRow = function (array $rowData) use ($colWidths, $chars): string {
+            $line = $chars['vertical'];
+            $rowDataNumeric = array_values($rowData); // Ensure numeric keys
+            foreach ($colWidths as $index => $colWidth) {
+                $cellContent = $rowDataNumeric[$index] ?? '';
+                $cellContent = mb_substr($cellContent, 0, $colWidth - 1);
+                $contentWidth = $this->_stringWidth($cellContent);
+                $padTotal = $colWidth - $contentWidth;
+                $cellContent = $this->bold($this->magenta($cellContent));
+
+                $line .= ' '.$cellContent.str_repeat(' ', max(0, $padTotal - 1));
+                $line .= $chars['vertical'];
+            }
+
+            return $line;
+        };
+
         $buildContentRow = function (array $rowData, string $format = '<fg=default>%s</>') use ($colWidths, $chars): string {
             $line = $chars['vertical'];
             $rowDataNumeric = array_values($rowData); // Ensure numeric keys
@@ -245,7 +262,7 @@ class GuestbookRenderer extends Renderer
         $output[] = $buildHorizontalLine($chars['top_left'], $chars['top_mid'], $chars['top_right']);
 
         // Header row
-        $output[] = $buildContentRow($headers, $this->dim('<fg=default>%s</>')); // Apply dim formatting to headers
+        $output[] = $buildHeaderRow($headers, $this->dim('<fg=default>%s</>')); // Apply dim formatting to headers
 
         // Header separator
         $output[] = $buildHorizontalLine($chars['mid_left'], $chars['mid_mid'], $chars['mid_right']);
