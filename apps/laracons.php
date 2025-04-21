@@ -4,6 +4,7 @@
 
 function card(array $laracon, int $width = 110): string
 {
+    $width -= 2;
     // Define border characters
     $colorPrefix = match ($laracon['color']) {
         'blue' => "\033[34m",
@@ -28,18 +29,19 @@ function card(array $laracon, int $width = 110): string
 
     $title = sprintf('%s ∙ %s ∙ %s', bold($laracon['name']), $laracon['location'], italic($laracon['days_to_go'] . ' days to go'));
     $remainingHeaderWidth = $width - mb_strlen(removeAnsi($title)) - 4;
-    $lines[] = $colorPrefix . $chars['top_left'] . $chars['horizontal'] . ' ' . $title . ' ' . str_repeat($chars['horizontal'], $remainingHeaderWidth) . $chars['top_right'] . $colorSuffix;
+    $lines[] = ' ' . $chars['top_left'] . $chars['horizontal'] . ' ' . $title . ' ' . str_repeat($chars['horizontal'], $remainingHeaderWidth) . $chars['top_right'];
 
     $excerptLines = "\n" . wordwrap($laracon['excerpt'], $width - 4, "\n") . "\n";
     foreach (explode("\n", $excerptLines) as $line) {
         $lines[] = $chars['vertical'] . ' ' . $line . str_repeat(' ', $width - strlen($line) - 2) . $chars['vertical'];
     }
 
-    $cfpString = $laracon['cfp_open'] ? sprintf('%s∙ CFP: %s', PHP_EOL, hyperlink($laracon['cfp_url'], $laracon['cfp_url'])) : 'CFP Closed';
-    $footer = sprintf("∙ Website: %s%s", hyperlink($laracon['url'], $laracon['url']), $cfpString);
+    $cfpString = $laracon['cfp_open'] ? sprintf('%s⇾ CFP: %s', PHP_EOL, hyperlink($laracon['cfp_url'], $laracon['cfp_url'])) : '';
+    $footer = sprintf("⇾ Website: %s%s", hyperlink($laracon['url'], $laracon['url']), $cfpString);
     $footerLines = explode("\n", $footer);
     foreach ($footerLines as $line) {
-        $lines[] = $chars['vertical'] . ' ' . $line . str_repeat(' ', $width - mb_strlen(removeAnsi($line)) - 2) . $chars['vertical'];
+        $paddingWidth = max(0, $width - mb_strlen(removeAnsi($line)) - 2);
+        $lines[] = $chars['vertical'] . ' ' . $line . str_repeat(' ', $paddingWidth) . $chars['vertical'];
     }
 
     $lines[] = $chars['vertical'] . str_repeat(' ', $width - 1) . $chars['vertical'];
@@ -48,17 +50,40 @@ function card(array $laracon, int $width = 110): string
     $repeatWidth = $width - mb_strlen(removeAnsi($bottomBarText)) - 4;
     $lines[] = $chars['bottom_left'] . $chars['horizontal'] . ' ' . $bottomBarText . ' ' . str_repeat($chars['horizontal'], $repeatWidth) . $chars['bottom_right'];
 
-    return implode("\n", $lines);
+    return implode(" \n ", $lines);
 }
 
 function removeAnsi(string $text): string
 {
-    return preg_replace('/\033\[[0-9;]*m/', '', $text);
+    $cleanText = preg_replace('/\033\[[0-9;]*m/', '', $text);
+
+    // make sure we remove any \e]8;;url[text]\e]8;;\e, but make sure we keep the text, we just remove the URL
+    // \033]8;;{$url}\007{$text}\033]8;;\033\\
+    // So we keep 'text', but remove everything else
+    $cleanText = preg_replace('/\033\]8;;(.+?)\007(.+?)\033]8;;\033\\\/', '$2', $cleanText);
+    return $cleanText;
 }
+
+// $text = '⇾ Website: ' . hyperlink('https://laracon.us/', 'https://laracon.us/');
+// var_dump(
+// removeAnsi($text),
+// bin2hex(removeAnsi($text)),
+// );
+// exit;
 
 function black(string $text): string
 {
     return sprintf("\033[30m%s\033[0m", $text);
+}
+
+function blue(string $text): string
+{
+    return "\033[34m{$text}\033[0m";
+}
+
+function dim(string $text): string
+{
+    return sprintf("\033[2m%s\033[0m", $text);
 }
 
 function bgMagenta(string $text): string
@@ -78,12 +103,22 @@ function italic(string $text): string
 
 function hyperlink(string $text, string $url): string
 {
-    return sprintf("\033[34m%s\033[0m", $url);
+    // \e]8;;url[text]\e]8;;\e
+    // You 'open' and close a hyperlink with \e]8;; basically
+    return blue("\033]8;;{$url}\007{$text}\033]8;;\033\\");
+}
+
+function center(string $text, int $width = 111): string
+{
+    $textLength = mb_strlen(removeAnsi($text));
+    $padding = (($width - $textLength) / 2) - 1;
+    return str_repeat(' ', (int) floor($padding)).$text;
 }
 
 function welcome(string $text, int $terminalWidth = 111): string
 {
     $textLength = mb_strlen($text);
+    $terminalWidth -= 1;
 
     // Calculate padding needed to center the text
     $padding = (($terminalWidth - $textLength) / 2) - 1;
@@ -97,7 +132,7 @@ function welcome(string $text, int $terminalWidth = 111): string
     $styled = bgMagenta($styled);
     $emptyBgColorLine = bgMagenta(str_repeat(' ', $terminalWidth));
 
-    return "{$emptyBgColorLine}\n{$styled}\n{$emptyBgColorLine}\n\n";
+    return " {$emptyBgColorLine}\n {$styled}\n {$emptyBgColorLine}\n\n";
 }
 
 $laracons = [
@@ -105,11 +140,8 @@ $laracons = [
         'color' => 'green',
         'name' => 'Laravel Live UK',
         'virtual' => false,
-        'excerpt' => 'Laravel Live UK is the official Laravel conference for the UK.
-
-Join over 300 Laravel and PHP enthusiasts for inspiring talks, valuable networking, and incredible learning experiences.
-
-Dive deep into the Laravel ecosystem with sessions dedicated to Laravel and related technologies. ',
+        'excerpt' => 'The official Laravel conference for the UK.
+Join over 300 Laravel and PHP enthusiasts for inspiring talks, valuable networking, and incredible learning experiences.',
         'location' => 'Shaw Theatre, London, UK',
         'url' => 'https://laravellive.uk/',
         'dates' => [
@@ -170,3 +202,5 @@ foreach ($laracons as $laracon) {
     echo card($laracon, $cols - 1);
     echo "\n\n";
 }
+
+echo dim(center(sprintf("CFP closed? More conferences to add? Email me %s\n", hyperlink('laracons@ashleyhindle.com', 'mailto:laracons@ashleyhindle.com')), $cols));
