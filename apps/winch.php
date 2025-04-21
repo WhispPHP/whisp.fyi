@@ -62,7 +62,6 @@ $drawMessage = function () use ($prompt, $fullWidth, $startX, $startY) {
 
 $draw = function () use ($prompt, $fullWidth, $drawMessage, $startX, $startY) {
     $paddingString = str_repeat(' ', $fullWidth / 2);
-    echo "\033[H\033[J"; // clear screen
 
     // First line of box, green line for padding
     echo sprintf("\033[%d;%dH", $startY, $startX);
@@ -78,6 +77,7 @@ $draw = function () use ($prompt, $fullWidth, $drawMessage, $startX, $startY) {
 };
 
 // Initial render - clear everything, draw everything
+echo "\033[H\033[J"; // clear screen
 $draw();
 
 while (time() - $startTime < 60) { // Run max of 60 seconds
