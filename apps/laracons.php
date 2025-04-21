@@ -1,26 +1,39 @@
 <?php
 
+[$rows, $cols] = explode(' ', exec('stty size'));
+
 function card(array $laracon, int $width = 110): string
 {
     // Define border characters
+    $colorPrefix = match ($laracon['color']) {
+        'blue' => "\033[34m",
+        'red' => "\033[31m",
+        'green' => "\033[32m",
+        default => '',
+    };
+    $colorSuffix = "\033[0m";
+
+
     $chars = [
         'top_left' => '┌', 'top_mid' => '┬', 'top_right' => '┐',
         'mid_left' => '├', 'mid_mid' => '┼', 'mid_right' => '┤',
         'bottom_left' => '└', 'bottom_mid' => '┴', 'bottom_right' => '┘',
         'horizontal' => '─', 'vertical' => '│',
     ];
+    foreach ($chars as $key => $char) {
+        $chars[$key] = $colorPrefix . $char . $colorSuffix;
+    }
 
     $lines = [];
 
     $title = sprintf('%s ∙ %s ∙ %s', bold($laracon['name']), $laracon['location'], italic($laracon['days_to_go'] . ' days to go'));
     $remainingHeaderWidth = $width - mb_strlen(removeAnsi($title)) - 4;
-    $lines[] = $chars['top_left'] . $chars['horizontal'] . ' ' . $title . ' ' . str_repeat($chars['horizontal'], $remainingHeaderWidth) . $chars['top_right'];
+    $lines[] = $colorPrefix . $chars['top_left'] . $chars['horizontal'] . ' ' . $title . ' ' . str_repeat($chars['horizontal'], $remainingHeaderWidth) . $chars['top_right'] . $colorSuffix;
 
     $excerptLines = "\n" . wordwrap($laracon['excerpt'], $width - 4, "\n") . "\n";
     foreach (explode("\n", $excerptLines) as $line) {
         $lines[] = $chars['vertical'] . ' ' . $line . str_repeat(' ', $width - strlen($line) - 2) . $chars['vertical'];
     }
-
 
     $cfpString = $laracon['cfp_open'] ? sprintf('%s∙ CFP: %s', PHP_EOL, hyperlink($laracon['cfp_url'], $laracon['cfp_url'])) : 'CFP Closed';
     $footer = sprintf("∙ Website: %s%s", hyperlink($laracon['url'], $laracon['url']), $cfpString);
@@ -89,6 +102,7 @@ function welcome(string $text, int $terminalWidth = 111): string
 
 $laracons = [
     [
+        'color' => 'green',
         'name' => 'Laravel Live UK',
         'virtual' => false,
         'excerpt' => 'Laravel Live UK is the official Laravel conference for the UK.
@@ -106,6 +120,7 @@ Dive deep into the Laravel ecosystem with sessions dedicated to Laravel and rela
         'cfp_url' => 'https://docs.google.com/forms/d/e/1FAIpQLSfHSkhxRpr5qMXeJ871OKQopOoV1Yl-Xn7ehT63UwoC-3nMYQ/viewform',
     ],
     [
+        'color' => 'red',
         'name' => 'Laracon US',
         'virtual' => false,
         'excerpt' => 'Laracon is back for 2025. The flagship Laravel event of the year and the largest PHP conference in the United States is heading to Denver, Colorado for two days of learning and networking with the Laravel community. Come away ready to build something amazing.',
@@ -119,6 +134,7 @@ Dive deep into the Laravel ecosystem with sessions dedicated to Laravel and rela
         'cfp_url' => 'https://frequent-pick-a8d.notion.site/1843f372b480802c9cf8ffb63a2c51f5',
     ],
     [
+        'color' => 'blue',
         'name' => 'Laracon Australia',
         'virtual' => false,
         'excerpt' => 'This year is set to be the biggest event in Laracon Australia\'s history, with a return to Brisbane Australia\'s bustling tech hub!',
@@ -148,9 +164,9 @@ usort($laracons, function ($a, $b) {
     return $a['days_to_go'] <=> $b['days_to_go'];
 });
 
-echo welcome(' 🎤 Upcoming Laravel Conferences 💪 ');
+echo welcome(' 🎤 Upcoming Laravel Conferences 💪 ', $cols - 1);
 
 foreach ($laracons as $laracon) {
-    echo card($laracon);
+    echo card($laracon, $cols - 1);
     echo "\n\n";
 }
