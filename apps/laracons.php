@@ -10,6 +10,7 @@ function card(array $laracon, int $width = 110): string
         'blue' => "\033[34m",
         'red' => "\033[31m",
         'green' => "\033[32m",
+        'yellow' => "\033[33m",
         default => '',
     };
     $colorSuffix = "\033[0m";
@@ -36,17 +37,15 @@ function card(array $laracon, int $width = 110): string
         $lines[] = $chars['vertical'] . ' ' . $line . str_repeat(' ', $width - strlen($line) - 2) . $chars['vertical'];
     }
 
-    $cfpString = $laracon['cfp_open'] ? sprintf('%s⇾ CFP: %s', PHP_EOL, hyperlink($laracon['cfp_url'], $laracon['cfp_url'])) : '';
-    $footer = sprintf("⇾ Website: %s%s", hyperlink($laracon['url'], $laracon['url']), $cfpString);
-    $footerLines = explode("\n", $footer);
-    foreach ($footerLines as $line) {
-        $paddingWidth = max(0, $width - mb_strlen(removeAnsi($line)) - 2);
-        $lines[] = $chars['vertical'] . ' ' . $line . str_repeat(' ', $paddingWidth) . $chars['vertical'];
+    if ($laracon['cfp_open']) {
+        $cfpString = sprintf('⇾ CFP: %s', hyperlink($laracon['cfp_url'], $laracon['cfp_url']));
+        $paddingWidth = max(0, $width - mb_strlen(removeAnsi($cfpString)) - 2);
+        $lines[] = $chars['vertical'] . ' ' . $cfpString . str_repeat(' ', $paddingWidth) . $chars['vertical'];
     }
 
     $lines[] = $chars['vertical'] . str_repeat(' ', $width - 1) . $chars['vertical'];
 
-    $bottomBarText = sprintf('From %s to %s', $laracon['dates']['start']->format('M d'), $laracon['dates']['end']->format('M d'));
+    $bottomBarText = sprintf('From %s to %s ∙ %s', $laracon['dates']['start']->format('M d'), $laracon['dates']['end']->format('M d'), hyperlink($laracon['url'], $laracon['url']));
     $repeatWidth = $width - mb_strlen(removeAnsi($bottomBarText)) - 4;
     $lines[] = $chars['bottom_left'] . $chars['horizontal'] . ' ' . $bottomBarText . ' ' . str_repeat($chars['horizontal'], $repeatWidth) . $chars['bottom_right'];
 
@@ -140,8 +139,7 @@ $laracons = [
         'color' => 'green',
         'name' => 'Laravel Live UK',
         'virtual' => false,
-        'excerpt' => 'The official Laravel conference for the UK.
-Join over 300 Laravel and PHP enthusiasts for inspiring talks, valuable networking, and incredible learning experiences.',
+        'excerpt' => 'The official Laravel conference for the UK with over 300 Laravel and PHP enthusiasts, inspiring talks, valuable networking, and incredible learning experiences.',
         'location' => 'Shaw Theatre, London, UK',
         'url' => 'https://laravellive.uk/',
         'dates' => [
@@ -179,6 +177,20 @@ Join over 300 Laravel and PHP enthusiasts for inspiring talks, valuable networki
         'cfp_open' => true,
         'cfp_url' => 'https://laracon.au/speak',
     ],
+    [
+        'color' => 'yellow',
+        'name' => 'Laravel Live Denmark',
+        'virtual' => false,
+        'excerpt' => 'Join us and 300 other Laravel and PHP enthusiasts from around the world got for two days of learning, 16 speakers and more within the Laravel community.',
+        'location' => 'Werkstatt, Copenhagen, DK',
+        'url' => 'https://laravellive.dk/',
+        'dates' => [
+            'start' => new \DateTime('2025-08-21'),
+            'end' => new \DateTime('2025-08-22'),
+        ],
+        'cfp_open' => false,
+        'cfp_url' => null,
+    ]
 ];
 
 foreach ($laracons as $key => $laracon) {
