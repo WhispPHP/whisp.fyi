@@ -41,9 +41,8 @@ function card(array $laracon, int $width = 110): string
         $cfpString = sprintf('⇾ CFP: %s', hyperlink($laracon['cfp_url'], $laracon['cfp_url']));
         $paddingWidth = max(0, $width - mb_strlen(removeAnsi($cfpString)) - 2);
         $lines[] = $chars['vertical'] . ' ' . $cfpString . str_repeat(' ', $paddingWidth) . $chars['vertical'];
+        $lines[] = $chars['vertical'] . str_repeat(' ', $width - 1) . $chars['vertical'];
     }
-
-    $lines[] = $chars['vertical'] . str_repeat(' ', $width - 1) . $chars['vertical'];
 
     $bottomBarText = sprintf('From %s to %s ∙ %s', $laracon['dates']['start']->format('M d'), $laracon['dates']['end']->format('M d'), hyperlink($laracon['url'], $laracon['url']));
     $repeatWidth = $width - mb_strlen(removeAnsi($bottomBarText)) - 4;
