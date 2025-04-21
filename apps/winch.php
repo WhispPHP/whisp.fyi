@@ -1,6 +1,6 @@
 <?php
 
-require_once realpath(__DIR__.'/vendor/autoload.php');
+require_once realpath(__DIR__ . '/vendor/autoload.php');
 
 $prompt = new class extends Laravel\Prompts\Prompt
 {
@@ -32,17 +32,37 @@ $prompt = new class extends Laravel\Prompts\Prompt
 
     public function registerSignalHandlers()
     {
-        pcntl_signal(SIGINT, function () {
+        pcntl_signal(SIGINT, function () { // Interrupt - Ctrl+C
+            echo "\033[?25h"; // Show cursor
+            exit;
+        });
+
+        pcntl_signal(SIGTERM, function () { // Terminate
             echo "\033[?25h"; // Show cursor
             exit;
         });
 
         pcntl_signal(SIGWINCH, function () {
-            // Get fresh dimensions from stty (non-PHP apps call TIOCGWINSZ)
+            // Get & use fresh dimensions from stty (non-PHP apps call TIOCGWINSZ)
             $this->freshDimensions();
         });
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 $startTime = time();
 $fullWidth = 14;
@@ -56,7 +76,7 @@ $drawMessage = function () use ($prompt, $fullWidth, $startX, $startY) {
     $paddedY = str_pad($prompt->rows, 4, ' ', STR_PAD_RIGHT);
     $padding = str_repeat(' ', ($fullWidth - 2 - strlen($paddedX) - strlen($paddedY)) / 2);
     $celebrationMessage = $prompt->bold(sprintf("%s%s x %s%s", $padding, $paddedX, $paddedY, $padding));
-    $output = sprintf("\033[%d;%dH", $startY+1, $startX);
+    $output = sprintf("\033[%d;%dH", $startY + 1, $startX);
     $output .= $prompt->bgMagenta($prompt->black($celebrationMessage));
 
     return $output;
@@ -72,7 +92,7 @@ $draw = function () use ($prompt, $fullWidth, $drawMessage, $startX, $startY) {
     $output .= $drawMessage();
 
     // Third line of box, green line for padding
-    $output .= sprintf("\033[%d;%dH", $startY+2, $startX);
+    $output .= sprintf("\033[%d;%dH", $startY + 2, $startX);
     $output .= $prompt->bgGreen($paddingString) . $prompt->bgMagenta(' ') . $prompt->bgGreen($paddingString);
 
     echo $output;
