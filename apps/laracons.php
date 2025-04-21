@@ -15,7 +15,6 @@ function card(array $laracon, int $width = 110): string
     };
     $colorSuffix = "\033[0m";
 
-
     $chars = [
         'top_left' => '┌', 'top_mid' => '┬', 'top_right' => '┐',
         'mid_left' => '├', 'mid_mid' => '┼', 'mid_right' => '┤',
@@ -23,14 +22,16 @@ function card(array $laracon, int $width = 110): string
         'horizontal' => '─', 'vertical' => '│',
     ];
     foreach ($chars as $key => $char) {
-        $chars[$key] = $colorPrefix . $char . $colorSuffix;
+        if ($key != 'horizontal') {
+            $chars[$key] = $colorPrefix . $char . $colorSuffix;
+        }
     }
 
     $lines = [];
 
-    $title = sprintf('%s ∙ %s ∙ %s', bold($laracon['name']), $laracon['location'], italic($laracon['days_to_go'] . ' days to go'));
+    $title = sprintf('%s%s%s ∙ %s ∙ %s', $colorPrefix, bold($laracon['name']), $colorSuffix, $laracon['location'], italic($laracon['days_to_go'] . ' days to go'));
     $remainingHeaderWidth = $width - mb_strlen(removeAnsi($title)) - 4;
-    $lines[] = ' ' . $chars['top_left'] . $chars['horizontal'] . ' ' . $title . ' ' . str_repeat($chars['horizontal'], $remainingHeaderWidth) . $chars['top_right'];
+    $lines[] = ' ' . $chars['top_left'] . $colorPrefix . $chars['horizontal'] . $colorSuffix . ' ' . $title . ' ' . $colorPrefix . str_repeat($chars['horizontal'], $remainingHeaderWidth) . $colorSuffix . $chars['top_right'];
 
     $excerptLines = "\n" . wordwrap($laracon['excerpt'], $width - 4, "\n") . "\n";
     foreach (explode("\n", $excerptLines) as $line) {
@@ -46,7 +47,7 @@ function card(array $laracon, int $width = 110): string
 
     $bottomBarText = sprintf('From %s to %s ∙ %s', $laracon['dates']['start']->format('M d'), $laracon['dates']['end']->format('M d'), hyperlink($laracon['url'], $laracon['url']));
     $repeatWidth = $width - mb_strlen(removeAnsi($bottomBarText)) - 4;
-    $lines[] = $chars['bottom_left'] . $chars['horizontal'] . ' ' . $bottomBarText . ' ' . str_repeat($chars['horizontal'], $repeatWidth) . $chars['bottom_right'];
+    $lines[] = $chars['bottom_left'] . $colorPrefix . $chars['horizontal'] . $colorSuffix . ' ' . $bottomBarText . ' ' . $colorPrefix . str_repeat($chars['horizontal'], $repeatWidth) . $colorSuffix . $chars['bottom_right'];
 
     return implode(" \n ", $lines);
 }
