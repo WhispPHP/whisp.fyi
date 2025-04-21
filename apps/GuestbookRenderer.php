@@ -52,6 +52,7 @@ class GuestbookRenderer extends Renderer
         ['cols' => $terminalWidth] = $this->guestbook->freshDimensions(); // cols() is cached, so doesn't work with window resizing, so call 'stty' again to get the _current_ width/height
 
         $textLength = mb_strlen($text);
+        $terminalWidth -= 2;
 
         // Calculate padding needed to center the text
         $padding = (($terminalWidth - $textLength) / 2) - 1;
@@ -65,7 +66,7 @@ class GuestbookRenderer extends Renderer
         $styled = $this->bgMagenta($styled);
         $emptyBgColorLine = $this->bgMagenta(str_repeat(' ', $terminalWidth));
 
-        return "{$emptyBgColorLine}\n{$styled}\n{$emptyBgColorLine}\n\n";
+        return "\n {$emptyBgColorLine}\n {$styled}\n {$emptyBgColorLine}\n\n";
     }
 
     private function getEntries(bool $visible = true): array
@@ -188,7 +189,7 @@ class GuestbookRenderer extends Renderer
 
         $requiredWidths = [$maxNameWidth + $padding * 2, 4, $maxTimestampWidth + $padding * 2];
 
-        $verticalBordersCount = $numColumns + 2;
+        $verticalBordersCount = $numColumns;
         $fixedStructureWidthWithoutMessagePadding = $verticalBordersCount + array_sum($requiredWidths);
 
         // Get terminal width
@@ -257,7 +258,7 @@ class GuestbookRenderer extends Renderer
         // Bottom border
         $output[] = $buildHorizontalLine($chars['bottom_left'], $chars['bottom_mid'], $chars['bottom_right']);
 
-        return implode(PHP_EOL, $output);
+        return ' ' . implode(PHP_EOL. ' ', $output);
     }
 
     private function renderGuestbook(): string
@@ -266,7 +267,7 @@ class GuestbookRenderer extends Renderer
         $header = $this->header('✨ SIGN MY SSH GUESTBOOK, made with Whisp + Laravel Prompts ✨');
 
         // Show latest guests that fit in the terminal
-        $guestTitle = $this->bold($this->magenta('Guestbook Entries:')).PHP_EOL;
+        $guestTitle = $this->bold($this->magenta(' Guestbook Entries:')).PHP_EOL;
 
         // Use the custom table rendering method
         $tableOutput = $this->_renderCustomTable(
