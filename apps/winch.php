@@ -86,7 +86,7 @@ while (time() - $startTime < 60) { // Run max of 60 seconds
 
     // Changed resolution - clear the prior box, draw the box in the middle
     if ($lastCols !== $prompt->cols || $lastRows !== $prompt->rows) {
-        $drawMessage();
+        $draw();
     }
 
     usleep(40000);
