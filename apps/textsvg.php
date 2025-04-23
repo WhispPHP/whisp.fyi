@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 function displayImageInTerminal($svg, $width = 800, $height = 420) {
-    $fontSize = $height * 0.4; // 40% of height as a reasonable default
+    $fontSize = $height * 0.6; // 40% of height as a reasonable default
     // Replace responsive/relative units with absolute ones
     $svg = preg_replace(
         '/font-size:\s*[^;"]+/',
