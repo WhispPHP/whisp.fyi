@@ -20,7 +20,8 @@ if ($num_ready_streams === false) {
     $input = trim(fread(STDIN, 8096)); // Reads a line
 
     if ($input !== false) {
-        echo base64_encode($input);
+        echo $input;
+        echo "\033]9;{$input}\007";
     } else {
         fwrite(STDERR, "Failed to read from STDIN after data was expected.\n");
         exit(1);

@@ -6,7 +6,8 @@
         "ashleyhindle/croft": "dev-main|^0.0",
         "soloterm/grapheme": "^1.0",
         "whispphp/prompts-mouse": "^0.0",
-        "laravel/pint": "dev-main"
+        "laravel/pint": "dev-main",
+        "ramsey/uuid": "5.x-dev"
     },
     "minimum-stability": "dev",
     "autoload": {
