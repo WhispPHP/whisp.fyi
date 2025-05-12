@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 echo base64_encode(
-    trim((new Apps\StdinReader())->read())
+    trim((new Apps\StdinReader)->read())
 );

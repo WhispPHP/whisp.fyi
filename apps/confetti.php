@@ -7,7 +7,8 @@ declare(strict_types=1);
 require_once realpath(__DIR__.'/vendor/autoload.php');
 
 use function Laravel\Prompts\clear;
-$responsive = !empty($argv[1]) || getenv('RESPONSIVE');
+
+$responsive = ! empty($argv[1]) || getenv('RESPONSIVE');
 
 $prompt = new class extends Laravel\Prompts\Prompt
 {
@@ -28,7 +29,6 @@ $prompt = new class extends Laravel\Prompts\Prompt
     }
 };
 
-
 ['cols' => $cols, 'lines' => $rows] = $prompt->freshDimensions();
 
 // Confetti
@@ -38,8 +38,8 @@ $prompt = new class extends Laravel\Prompts\Prompt
 /**
  * Generates a random hex color (#RRGGBB) with perceived luminance within a specified range.
  *
- * @param float $minLuminance Minimum acceptable luminance (0-255, e.g., 50).
- * @param float $maxLuminance Maximum acceptable luminance (0-255, e.g., 200).
+ * @param  float  $minLuminance  Minimum acceptable luminance (0-255, e.g., 50).
+ * @param  float  $maxLuminance  Maximum acceptable luminance (0-255, e.g., 200).
  * @return string The hex color code (e.g., "#A8C45F").
  */
 function getRandomHexColorInRange(float $minLuminance = 50.0, float $maxLuminance = 200.0): string
@@ -56,10 +56,10 @@ function getRandomHexColorInRange(float $minLuminance = 50.0, float $maxLuminanc
         // 3. Check if luminance is within the desired range
         $isValid = ($luminance >= $minLuminance && $luminance <= $maxLuminance);
 
-    } while (!$isValid); // 4. Repeat if not in range
+    } while (! $isValid); // 4. Repeat if not in range
 
     // 5. Convert valid RGB to Hex format
-    return sprintf("#%02X%02X%02X", $r, $g, $b);
+    return sprintf('#%02X%02X%02X', $r, $g, $b);
 }
 
 // Confetti
@@ -72,7 +72,7 @@ for ($i = 0; $i < 140; $i++) {
     // My terminal supports true color, so we should pick a random 'true color' (hex?) for color instead
     // Except, try to pick a color that's not too dark
     $color = getRandomHexColorInRange(80, 240);
-    list($r, $g, $b) = sscanf($color, "#%02X%02X%02X");
+    [$r, $g, $b] = sscanf($color, '#%02X%02X%02X');
     $confetti[] = [
         'color' => "\x1b[38;2;{$r};{$g};{$b}m",
         'shape' => array_rand([
@@ -130,8 +130,8 @@ if ($responsive) {
         $heightGreater = $rows > $lastRows;
 
         foreach ($confetti as &$confettiItem) {
-            $confettiItem['x'] = max((int)floor($confettiItem['originalXPercentage'] * $cols), 1);
-            $confettiItem['y'] = min((int)floor($confettiItem['currentYPercentage'] * $rows), $rows);
+            $confettiItem['x'] = max((int) floor($confettiItem['originalXPercentage'] * $cols), 1);
+            $confettiItem['y'] = min((int) floor($confettiItem['currentYPercentage'] * $rows), $rows);
 
             // If the confetti has reached the bottom, then don't do anything to 'y', we're fine
             if ($confettiItem['y'] > $rows) { // They've been moved to the right _x_ to be correct
@@ -162,8 +162,9 @@ while (microtime(true) - $startTime < $maxTime && ! $allLanded($confetti)) {
     pcntl_signal_dispatch();
     $usecsSinceLastRender = (microtime(true) - $lastRenderTime) * 1000000;
     $isTimeToRender = $usecsSinceLastRender >= $usleep;
-    if (!$isTimeToRender) {
+    if (! $isTimeToRender) {
         usleep((int) ($usleep / 3)); // We can't sleep the usec diff, because we want to handle signals more frequently than our frame rate
+
         continue;
     }
     $lastRenderTime = microtime(true);
@@ -175,7 +176,7 @@ while (microtime(true) - $startTime < $maxTime && ! $allLanded($confetti)) {
     // Set 'y' based on 'currentYPercentage'
     if ($responsive) {
         foreach ($confetti as &$confettiItem) {
-            $confettiItem['y'] = min((int)floor($confettiItem['currentYPercentage'] * $rows), $rows);
+            $confettiItem['y'] = min((int) floor($confettiItem['currentYPercentage'] * $rows), $rows);
         }
     }
 
@@ -219,8 +220,8 @@ while (microtime(true) - $startTime < $maxTime && ! $allLanded($confetti)) {
     echo $confettis;
 
     $ys = array_column($confetti, 'y');
-    $prevLowestY = (int)floor(min($ys));
+    $prevLowestY = (int) floor(min($ys));
 
     $prompt->hideCursor();
-    usleep((int)$usleep / 4);
+    usleep((int) $usleep / 4);
 }

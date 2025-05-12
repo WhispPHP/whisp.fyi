@@ -275,7 +275,7 @@ class GuestbookRenderer extends Renderer
         // Bottom border
         $output[] = $buildHorizontalLine($chars['bottom_left'], $chars['bottom_mid'], $chars['bottom_right']);
 
-        return ' ' . implode(PHP_EOL. ' ', $output);
+        return ' '.implode(PHP_EOL.' ', $output);
     }
 
     private function renderGuestbook(): string
@@ -284,7 +284,7 @@ class GuestbookRenderer extends Renderer
         $header = $this->header('✨ SIGN MY SSH GUESTBOOK, made with Whisp + Laravel Prompts ✨');
 
         // Show latest guests that fit in the terminal
-        $guestTitle = $this->bold($this->magenta(' ' . count($this->getEntries(false)) . ' Guestbook Entries:')).PHP_EOL;
+        $guestTitle = $this->bold($this->magenta(' '.count($this->getEntries(false)).' Guestbook Entries:')).PHP_EOL;
 
         // Use the custom table rendering method
         $tableOutput = $this->_renderCustomTable(

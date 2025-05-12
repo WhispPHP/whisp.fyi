@@ -1,10 +1,11 @@
 <?php
 
-require_once realpath(__DIR__ . '/vendor/autoload.php');
+require_once realpath(__DIR__.'/vendor/autoload.php');
 
 $prompt = new class extends Laravel\Prompts\Prompt
 {
     public int $cols;
+
     public int $rows;
 
     public function __construct()
@@ -49,21 +50,6 @@ $prompt = new class extends Laravel\Prompts\Prompt
     }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 $startTime = time();
 $fullWidth = 14;
 $startX = 3;
@@ -75,7 +61,7 @@ $drawMessage = function () use ($prompt, $fullWidth, $startX, $startY) {
     $paddedX = str_pad($prompt->cols, 4, ' ', STR_PAD_LEFT);
     $paddedY = str_pad($prompt->rows, 4, ' ', STR_PAD_RIGHT);
     $padding = str_repeat(' ', ($fullWidth - 2 - strlen($paddedX) - strlen($paddedY)) / 2);
-    $celebrationMessage = $prompt->bold(sprintf("%s%s x %s%s", $padding, $paddedX, $paddedY, $padding));
+    $celebrationMessage = $prompt->bold(sprintf('%s%s x %s%s', $padding, $paddedX, $paddedY, $padding));
     $output = sprintf("\033[%d;%dH", $startY + 1, $startX);
     $output .= $prompt->bgMagenta($prompt->black($celebrationMessage));
 
@@ -87,13 +73,13 @@ $draw = function () use ($prompt, $fullWidth, $drawMessage, $startX, $startY) {
 
     // First line of box, green line for padding
     $output = sprintf("\033[%d;%dH", $startY, $startX);
-    $output .= $prompt->bgGreen($paddingString) . $prompt->bgMagenta(' ') . $prompt->bgGreen($paddingString);
+    $output .= $prompt->bgGreen($paddingString).$prompt->bgMagenta(' ').$prompt->bgGreen($paddingString);
 
     $output .= $drawMessage();
 
     // Third line of box, green line for padding
     $output .= sprintf("\033[%d;%dH", $startY + 2, $startX);
-    $output .= $prompt->bgGreen($paddingString) . $prompt->bgMagenta(' ') . $prompt->bgGreen($paddingString);
+    $output .= $prompt->bgGreen($paddingString).$prompt->bgMagenta(' ').$prompt->bgGreen($paddingString);
 
     echo $output;
 

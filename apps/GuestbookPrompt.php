@@ -19,6 +19,7 @@ class GuestbookPrompt extends Prompt
     private Mouse $mouse;
 
     public int $startIndex = 0;
+
     public array $prevDimensions;
 
     public function __construct()

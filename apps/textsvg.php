@@ -1,6 +1,8 @@
 <?php
-require_once __DIR__ . '/vendor/autoload.php';
-function displayImageInTerminal($svg, $width = 800, $height = 420) {
+
+require_once __DIR__.'/vendor/autoload.php';
+function displayImageInTerminal($svg, $width = 800, $height = 420)
+{
     $fontSize = $height * 0.6; // 40% of height as a reasonable default
     // Replace responsive/relative units with absolute ones
     $svg = preg_replace(
@@ -16,7 +18,8 @@ function displayImageInTerminal($svg, $width = 800, $height = 420) {
     exec("rsvg-convert -w {$width} -h {$height} {$tempSvg} > {$tempPng}", $output, $returnVal);
 
     if ($returnVal !== 0) {
-        echo "Convert failed: " . implode("\n", $output) . "\n";
+        echo 'Convert failed: '.implode("\n", $output)."\n";
+
         return;
     }
 
@@ -24,6 +27,7 @@ function displayImageInTerminal($svg, $width = 800, $height = 420) {
     $pngData = file_get_contents($tempPng);
     if (substr($pngData, 0, 8) !== "\x89PNG\r\n\x1a\n") {
         echo "Not a valid PNG file generated\n";
+
         return;
     }
 
@@ -36,32 +40,33 @@ function displayImageInTerminal($svg, $width = 800, $height = 420) {
 
     // More explicit payload parameters
     $params = [
-        "a=T",        // align top-left
-        "f=100",      // format = RGB
+        'a=T',        // align top-left
+        'f=100',      // format = RGB
         // "t=d",        // display permanently (not temp)
         "i={$uniqId}",        // transmit immediately
-        "q=2",        // quality = high
+        'q=2',        // quality = high
         "I={$uniqId}", // unique identifier so subsequent calls don't replace earlier ones
     ];
-    $payload = implode(",", $params);
+    $payload = implode(',', $params);
     $payload .= ";{$base64}";
 
     echo "\033_G{$payload}\033\\";
 }
 
-function textToSVG($text, array $options = []) {
+function textToSVG($text, array $options = [])
+{
     // Default options
     $defaults = [
-        'fontFamily' => "Montserrat, Helvetica, Arial, sans-serif",
+        'fontFamily' => 'Montserrat, Helvetica, Arial, sans-serif',
         'fontSize' => 140,
         'fontWeight' => 900,  // 400=normal, 700=bold
         'color' => '#ffffff',
-        'padding' => 20  // padding around the text
+        'padding' => 20,  // padding around the text
     ];
 
     $opts = array_merge($defaults, $options);
 
-    $backgroundSVG = <<<SVG
+    $backgroundSVG = <<<'SVG'
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="562" viewBox="1 1 999 560" version="1.1">
   <rect width="1000" height="562" style="fill: rgb(194, 32, 94);"/>
   <path d="M 0.018 47.25 L -0.015 94.686 L 16.167 106.5 C 25.039 113.1 38.406 122.918 45.872 128.318 C 53.338 133.718 65.534 141.999 72.973 146.72 C 80.413 151.441 91.45 158.057 97.5 161.423 C 103.55 164.788 114.35 170.309 121.5 173.691 C 128.65 177.074 140.575 181.861 148 184.331 C 155.425 186.8 165.775 189.728 171 190.836 C 176.225 191.944 186.125 193.53 193 194.36 C 199.875 195.19 210.9 196.149 217.5 196.49 C 224.1 196.832 237.6 196.623 247.5 196.026 C 257.4 195.43 271.125 194.265 278 193.439 C 284.875 192.612 299.725 190.626 311 189.025 C 322.275 187.423 338.25 185.357 346.5 184.433 C 355.525 183.423 369.068 182.769 380.5 182.791 C 395.045 182.82 402.197 183.306 411 184.864 C 417.325 185.984 426.514 188.067 431.419 189.495 C 436.325 190.922 445.27 194.109 451.298 196.578 C 457.325 199.047 477.162 208.433 495.378 217.436 C 513.595 226.439 533.032 235.628 538.57 237.855 C 544.109 240.082 552.646 243.065 557.541 244.484 C 562.435 245.902 570.504 247.722 575.47 248.527 C 580.437 249.333 589.9 249.986 596.5 249.978 C 603.1 249.97 613.225 249.292 618.999 248.471 C 624.774 247.651 633.999 245.89 639.499 244.559 C 645 243.227 654.751 240.542 661.168 238.591 C 667.585 236.639 686.035 230.256 702.168 224.406 C 718.301 218.556 751.75 206.671 776.5 197.995 C 801.25 189.319 831.4 178.519 843.5 173.995 C 855.6 169.471 875.85 161.588 888.5 156.477 C 901.15 151.367 921.4 142.945 933.5 137.762 C 945.6 132.579 965.447 123.929 977.605 118.54 L 1000.66 108.897 L 1000.35 97.621 C 1000.703 91.504 1000.993 67.038 1000.995 43.25 L 1001 0 L 500.5 0 L 0 0 L 0.018 47.25" stroke="none" fill="#f4cb4c" fill-rule="evenodd">
@@ -112,7 +117,7 @@ SVG;
 }
 
 $svg = textToSVG(
-    (new Apps\StdinReader())->read()
+    (new Apps\StdinReader)->read()
 );
 
 displayImageInTerminal($svg);
