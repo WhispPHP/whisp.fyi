@@ -23,31 +23,31 @@ function card(array $laracon, int $width = 110): string
     ];
     foreach ($chars as $key => $char) {
         if ($key != 'horizontal') {
-            $chars[$key] = $colorPrefix . $char . $colorSuffix;
+            $chars[$key] = $colorPrefix.$char.$colorSuffix;
         }
     }
 
     $lines = [];
 
-    $title = sprintf('%s%s%s ∙ %s ∙ %s', $colorPrefix, bold($laracon['name']), $colorSuffix, $laracon['location'], italic($laracon['days_to_go'] . ' days to go'));
+    $title = sprintf('%s%s%s ∙ %s ∙ %s', $colorPrefix, bold($laracon['name']), $colorSuffix, $laracon['location'], italic($laracon['days_to_go'].' days to go'));
     $remainingHeaderWidth = $width - mb_strlen(removeAnsi($title)) - 4;
-    $lines[] = ' ' . $chars['top_left'] . $colorPrefix . $chars['horizontal'] . $colorSuffix . ' ' . $title . ' ' . $colorPrefix . str_repeat($chars['horizontal'], $remainingHeaderWidth) . $colorSuffix . $chars['top_right'];
+    $lines[] = ' '.$chars['top_left'].$colorPrefix.$chars['horizontal'].$colorSuffix.' '.$title.' '.$colorPrefix.str_repeat($chars['horizontal'], $remainingHeaderWidth).$colorSuffix.$chars['top_right'];
 
-    $excerptLines = "\n" . wordwrap($laracon['excerpt'], $width - 4, "\n") . "\n";
+    $excerptLines = "\n".wordwrap($laracon['excerpt'], $width - 4, "\n")."\n";
     foreach (explode("\n", $excerptLines) as $line) {
-        $lines[] = $chars['vertical'] . ' ' . $line . str_repeat(' ', $width - strlen($line) - 2) . $chars['vertical'];
+        $lines[] = $chars['vertical'].' '.$line.str_repeat(' ', $width - strlen($line) - 2).$chars['vertical'];
     }
 
     if ($laracon['cfp_open']) {
         $cfpString = sprintf('⇾ CFP: %s', hyperlink($laracon['cfp_url'], $laracon['cfp_url']));
         $paddingWidth = max(0, $width - mb_strlen(removeAnsi($cfpString)) - 2);
-        $lines[] = $chars['vertical'] . ' ' . $cfpString . str_repeat(' ', $paddingWidth) . $chars['vertical'];
-        $lines[] = $chars['vertical'] . str_repeat(' ', $width - 1) . $chars['vertical'];
+        $lines[] = $chars['vertical'].' '.$cfpString.str_repeat(' ', $paddingWidth).$chars['vertical'];
+        $lines[] = $chars['vertical'].str_repeat(' ', $width - 1).$chars['vertical'];
     }
 
     $bottomBarText = sprintf('From %s to %s ∙ %s', $laracon['dates']['start']->format('M d'), $laracon['dates']['end']->format('M d'), hyperlink($laracon['url'], $laracon['url']));
     $repeatWidth = $width - mb_strlen(removeAnsi($bottomBarText)) - 4;
-    $lines[] = $chars['bottom_left'] . $colorPrefix . $chars['horizontal'] . $colorSuffix . ' ' . $bottomBarText . ' ' . $colorPrefix . str_repeat($chars['horizontal'], $repeatWidth) . $colorSuffix . $chars['bottom_right'];
+    $lines[] = $chars['bottom_left'].$colorPrefix.$chars['horizontal'].$colorSuffix.' '.$bottomBarText.' '.$colorPrefix.str_repeat($chars['horizontal'], $repeatWidth).$colorSuffix.$chars['bottom_right'];
 
     return implode(" \n ", $lines);
 }
@@ -60,6 +60,7 @@ function removeAnsi(string $text): string
     // \033]8;;{$url}\007{$text}\033]8;;\033\\
     // So we keep 'text', but remove everything else
     $cleanText = preg_replace('/\033\]8;;(.+?)\007(.+?)\033]8;;\033\\\/', '$2', $cleanText);
+
     return $cleanText;
 }
 
@@ -111,6 +112,7 @@ function center(string $text, int $width = 111): string
 {
     $textLength = mb_strlen(removeAnsi($text));
     $padding = (($width - $textLength) / 2) - 1;
+
     return str_repeat(' ', (int) floor($padding)).$text;
 }
 
@@ -160,7 +162,7 @@ $laracons = [
             'start' => new \DateTime('2025-07-29'),
             'end' => new \DateTime('2025-07-30'),
         ],
-        'cfp_open' => true,
+        'cfp_open' => false,
         'cfp_url' => 'https://frequent-pick-a8d.notion.site/1843f372b480802c9cf8ffb63a2c51f5',
     ],
     [
@@ -190,18 +192,17 @@ $laracons = [
         ],
         'cfp_open' => false,
         'cfp_url' => null,
-    ]
+    ],
 ];
 
 foreach ($laracons as $key => $laracon) {
-    $laracons[$key]['days_to_go'] = $laracon['dates']['start']->diff(new \DateTime())->days;
+    $laracons[$key]['days_to_go'] = $laracon['dates']['start']->diff(new \DateTime)->days;
 }
 
 // Remove any conferences that are in the past
 $laracons = array_filter($laracons, function ($laracon) {
     return $laracon['days_to_go'] > 0;
 });
-
 
 // Sort laracons by days to go
 usort($laracons, function ($a, $b) {
