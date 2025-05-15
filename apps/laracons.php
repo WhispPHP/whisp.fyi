@@ -148,7 +148,7 @@ $laracons = [
             'start' => new \DateTime('2025-06-10'),
             'end' => new \DateTime('2025-06-11'),
         ],
-        'cfp_open' => true,
+        'cfp_open' => false,
         'cfp_url' => 'https://docs.google.com/forms/d/e/1FAIpQLSfHSkhxRpr5qMXeJ871OKQopOoV1Yl-Xn7ehT63UwoC-3nMYQ/viewform',
     ],
     [
