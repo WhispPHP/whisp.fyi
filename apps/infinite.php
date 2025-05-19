@@ -326,6 +326,13 @@ EARTH;
         $worldX = $event->x + $this->viewport['x'];
         $worldY = $event->y + $this->viewport['y'];
 
+        // Check if we clicked inside any existing art
+        foreach ($this->asciiArt as $id => $art) {
+            if ($art->isWithinBounds($worldX, $worldY)) {
+                return $event; // Ignore right clicks on existing art
+            }
+        }
+
         // Move cursor to clicked position
         echo sprintf("\033[%d;%dH", $event->y + 1, 1);
 
