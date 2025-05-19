@@ -547,13 +547,15 @@ EARTH;
             $output .= $row . "\n";
         }
 
-        // Add viewport coordinates in bottom right
+        // Add help text and viewport coordinates in bottom right
         $coords = sprintf('(%d,%d)', $this->viewport['x'], $this->viewport['y']);
+        $help = "h = home ∙ e = earth ∙ q = quit ∙ Mouse: left = star/cycle color, right = text, middle drag = move";
+        $statusLine = $help . " ∙ " . $coords;
         $output .= sprintf(
             "\033[%d;%dH%s",
             $this->viewport['height'],
-            $this->viewport['width'] - strlen($coords),
-            $coords
+            max(1, $this->viewport['width'] - strlen($statusLine)),
+            $statusLine
         );
 
         $this->lastFrame = $output;
