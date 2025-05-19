@@ -185,7 +185,7 @@ EARTH;
             ?? uniqid('anon_', true);
 
         // Replace characters that are not filename-friendly
-        $sanitised = preg_replace('=', '', base64_encode(md5(preg_replace('/[^A-Za-z0-9_\-]/', '_', $identifier))));
+        $sanitised = str_replace('=', '', base64_encode(md5(preg_replace('/[^A-Za-z0-9_\-]/', '_', $identifier))));
 
         // Ensure the storage directory exists (…/storage/canvas)
         $dir = dirname(__DIR__) . '/storage/canvas';
