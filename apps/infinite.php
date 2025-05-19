@@ -144,7 +144,6 @@ EARTH;
     public function __construct()
     {
         $this->storageFile = __DIR__ . '/infinite_canvas.json';
-        $this->registerSignalHandlers();
         $this->freshDimensions();
         $this->setupMouseListening();
         $this->listenToKeys();
@@ -510,7 +509,12 @@ EARTH;
             'asciiArt' => array_map(fn ($art) => $art->jsonSerialize(), $this->asciiArt),
         ];
 
-        file_put_contents($this->storageFile, json_encode($state, JSON_PRETTY_PRINT));
+        $compressed = gzcompress(json_encode($state), 9); // Maximum compression level
+
+        // Use atomic write with temporary file
+        $tempFile = $this->storageFile . '.tmp';
+        file_put_contents($tempFile, $compressed);
+        rename($tempFile, $this->storageFile);
     }
 
     private function loadState(): bool
@@ -519,20 +523,30 @@ EARTH;
             return false;
         }
 
-        $data = json_decode(file_get_contents($this->storageFile), true);
-        if (!$data) {
+        try {
+            $compressed = file_get_contents($this->storageFile);
+            if (!$compressed) {
+                return false;
+            }
+
+            $data = json_decode(gzuncompress($compressed), true);
+            if (!$data) {
+                return false;
+            }
+
+            $this->canvas = $data['canvas'] ?? [];
+
+            // Load ASCII art
+            $this->asciiArt = [];
+            foreach ($data['asciiArt'] ?? [] as $id => $artData) {
+                $this->asciiArt[$id] = AsciiArt::fromArray($artData);
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            error_log("Error loading state: " . $e->getMessage());
             return false;
         }
-
-        $this->canvas = $data['canvas'] ?? [];
-
-        // Load ASCII art
-        $this->asciiArt = [];
-        foreach ($data['asciiArt'] ?? [] as $id => $artData) {
-            $this->asciiArt[$id] = AsciiArt::fromArray($artData);
-        }
-
-        return true;
     }
 
     public function render(): void
