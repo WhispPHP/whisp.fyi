@@ -119,7 +119,7 @@ class InfiniteCanvas extends Prompt
     ];
     private string $lastFrame = '';
     private bool $viewportChanged = false;
-
+    private string $instanceId;
     private array $canvas = [];  // sparse array: $canvas[$x][$y] = ['glyph' => string, 'color' => string]
     private array $glyphs = ['✦', '✧', '⋆', '✫', '✬', '✯', '✡', ' '];  // Unicode stars
     private string $originStar = "\033[33m⭐\033[0m";  // Yellow star with ANSI color
@@ -143,7 +143,9 @@ EARTH;
 
     public function __construct()
     {
-        $this->storageFile = __DIR__ . '/infinite_canvas.json';
+        $this->instanceId = uniqid('canvas_', true);
+        $this->storageFile = $this->createStorageFilePath();
+        $this->registerSignalHandlers();
         $this->freshDimensions();
         $this->setupMouseListening();
         $this->listenToKeys();
@@ -164,6 +166,32 @@ EARTH;
         if (!$this->loadState()) {
             $this->addEarth();
         }
+    }
+
+    public function __destruct()
+    {
+        // Nothing to clean up anymore.
+    }
+
+    private function createStorageFilePath(): string
+    {
+        // Determine a unique identifier for this user
+        $identifier = $_SERVER['WHISP_USER_PUBLIC_KEY']
+            ?? $_ENV['WHISP_USER_PUBLIC_KEY']
+            ?? $_SERVER['WHISP_CLIENT_IP']
+            ?? $_ENV['WHISP_CLIENT_IP']
+            ?? uniqid('anon_', true);
+
+        // Replace characters that are not filename-friendly
+        $sanitised = preg_replace('=', '', base64_encode(md5(preg_replace('/[^A-Za-z0-9_\-]/', '_', $identifier))));
+
+        // Ensure the storage directory exists (…/storage/canvas)
+        $dir = dirname(__DIR__) . '/storage/canvas';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        return $dir . '/' . $sanitised . '.gz';
     }
 
     private function addEarth(): void
@@ -397,14 +425,14 @@ EARTH;
     private function handleLeftClick(MouseEvent $event): ?MouseEvent
     {
         // Convert screen coordinates to world coordinates
-        $worldX = $event->x + $this->viewport['x'];
+        $worldX = $event->x + $this->viewport['x'] - 1;
         $worldY = $event->y + $this->viewport['y'];
 
         // Check if we clicked inside any text box
         foreach ($this->asciiArt as $id => $art) {
             if ($art->isWithinBounds($worldX, $worldY)) {
-                // Change to a random bright color
-                $art->setColor($this->generateBrightColor());
+                $newColor = $this->generateBrightColor();
+                $art->setColor($newColor);
                 return $event;
             }
         }
@@ -416,10 +444,11 @@ EARTH;
 
         // Add a new random star
         $glyph = $this->glyphs[mt_rand(0, count($this->glyphs) - 2)]; // Exclude space character
-        $this->canvas[$worldX][$worldY] = [
+        $data = [
             'glyph' => $glyph,
             'color' => $this->generateBrightColor(),
         ];
+        $this->canvas[$worldX][$worldY] = $data;
 
         return $event;
     }
@@ -509,9 +538,8 @@ EARTH;
             'asciiArt' => array_map(fn ($art) => $art->jsonSerialize(), $this->asciiArt),
         ];
 
-        $compressed = gzcompress(json_encode($state), 9); // Maximum compression level
+        $compressed = gzcompress(json_encode($state), 9);
 
-        // Use atomic write with temporary file
         $tempFile = $this->storageFile . '.tmp';
         file_put_contents($tempFile, $compressed);
         rename($tempFile, $this->storageFile);
@@ -519,11 +547,11 @@ EARTH;
 
     private function loadState(): bool
     {
-        if (!file_exists($this->storageFile)) {
-            return false;
-        }
-
         try {
+            if (!file_exists($this->storageFile)) {
+                return false;
+            }
+
             $compressed = file_get_contents($this->storageFile);
             if (!$compressed) {
                 return false;
@@ -535,8 +563,6 @@ EARTH;
             }
 
             $this->canvas = $data['canvas'] ?? [];
-
-            // Load ASCII art
             $this->asciiArt = [];
             foreach ($data['asciiArt'] ?? [] as $id => $artData) {
                 $this->asciiArt[$id] = AsciiArt::fromArray($artData);
@@ -554,6 +580,8 @@ EARTH;
         if (!$this->viewportChanged && $this->lastFrame !== '') {
             return;
         }
+
+        $this->saveState();
         $this->viewportChanged = false;
 
         $output = "\033[H"; // Move cursor to home position
