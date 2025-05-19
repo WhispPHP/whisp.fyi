@@ -117,6 +117,12 @@ class InfiniteCanvas extends Prompt
         'x' => 0,
         'y' => 0,
     ];
+    private array $lastViewport = [
+        'x' => 0,
+        'y' => 0,
+        'width' => 0,
+        'height' => 0,
+    ];
     private string $lastFrame = '';
     private bool $viewportChanged = false;
     private string $instanceId;
@@ -398,6 +404,7 @@ EARTH;
             ], "\033[37m"); // White color for text boxes
         }
 
+        $this->viewportChanged = true;
         return $event;
     }
 
@@ -408,7 +415,7 @@ EARTH;
             return;
         }
 
-        $action = match ($event->mouseEvent) {
+        match ($event->mouseEvent) {
             MouseButton::LEFT => $this->handleLeftClick($event),
             MouseButton::RIGHT => $this->handleRightClick($event),
             MouseButton::MIDDLE => $this->startDrag($event),
@@ -418,10 +425,6 @@ EARTH;
             MouseButton::WHEEL_DOWN => $this->viewport['y'] += 3,
             default => null,
         };
-
-        if (!is_null($action)) {
-            $this->viewportChanged = true;
-        }
     }
 
     private function handleLeftClick(MouseEvent $event): ?MouseEvent
@@ -435,6 +438,7 @@ EARTH;
             if ($art->isWithinBounds($worldX, $worldY)) {
                 $newColor = $this->generateBrightColor();
                 $art->setColor($newColor);
+                $this->viewportChanged = true;
                 return $event;
             }
         }
@@ -451,6 +455,7 @@ EARTH;
             'color' => $this->generateBrightColor(),
         ];
         $this->canvas[$worldX][$worldY] = $data;
+        $this->viewportChanged = true;
 
         return $event;
     }
@@ -512,10 +517,6 @@ EARTH;
                 's' => $this->saveState(),
                 default => null,
             };
-
-            if (!is_null($action)) {
-                $this->viewportChanged = true;
-            }
         });
     }
 
@@ -579,12 +580,26 @@ EARTH;
 
     public function render(): void
     {
-        if (!$this->viewportChanged && $this->lastFrame !== '') {
+        $viewportPositionChanged =
+            $this->viewport['x'] !== $this->lastViewport['x'] ||
+            $this->viewport['y'] !== $this->lastViewport['y'] ||
+            $this->viewport['width'] !== $this->lastViewport['width'] ||
+            $this->viewport['height'] !== $this->lastViewport['height'];
+
+        if (!$viewportPositionChanged && !$this->viewportChanged && $this->lastFrame !== '') {
             return;
         }
 
         $this->saveState();
         $this->viewportChanged = false;
+
+        // Update last viewport position
+        $this->lastViewport = [
+            'x' => $this->viewport['x'],
+            'y' => $this->viewport['y'],
+            'width' => $this->viewport['width'],
+            'height' => $this->viewport['height'],
+        ];
 
         $output = "\033[H"; // Move cursor to home position
 
