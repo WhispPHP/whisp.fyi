@@ -190,8 +190,8 @@ EARTH;
             ?? $_ENV['WHISP_CLIENT_IP']
             ?? uniqid('anon_', true);
 
-        // Replace characters that are not filename-friendly
-        $sanitised = str_replace('=', '', base64_encode(md5(preg_replace('/[^A-Za-z0-9_\-]/', '_', $identifier))));
+        // Create a hash of the identifier - this will give us a fixed length string
+        $hash = hash('sha256', $identifier);
 
         // Ensure the storage directory exists (…/storage/canvas)
         $dir = dirname(__DIR__) . '/storage/canvas';
@@ -199,7 +199,7 @@ EARTH;
             mkdir($dir, 0777, true);
         }
 
-        return $dir . '/' . $sanitised . '.gz';
+        return $dir . '/' . $hash . '.gz';
     }
 
     private function addEarth(): void
