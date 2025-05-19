@@ -170,6 +170,8 @@ EARTH;
 
     public function __destruct()
     {
+        parent::__destruct();
+        $this->writeDirectly($this->mouse->disable());
         // Nothing to clean up anymore.
     }
 
