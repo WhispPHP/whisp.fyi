@@ -196,7 +196,8 @@ $laracons = [
 ];
 
 foreach ($laracons as $key => $laracon) {
-    $laracons[$key]['days_to_go'] = $laracon['dates']['start']->diff(new \DateTime)->days;
+    $diff = $laracon['dates']['start']->diff(new \DateTime);
+    $laracons[$key]['days_to_go'] = $diff->invert === 0 ? 0 - $diff->days : $diff->days;
 }
 
 // Remove any conferences that are in the past
