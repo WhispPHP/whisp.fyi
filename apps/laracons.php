@@ -176,7 +176,7 @@ $laracons = [
             'start' => new \DateTime('2025-11-13'),
             'end' => new \DateTime('2025-11-14'),
         ],
-        'cfp_open' => true,
+        'cfp_open' => false,
         'cfp_url' => 'https://laracon.au/speak',
     ],
     [
