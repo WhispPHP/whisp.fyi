@@ -324,7 +324,7 @@ class Checkboxes extends Prompt
             $output = $checkbox->render();
 
             if (empty($checkbox->bounds)) {
-                $checkbox->setOutputB($output);
+                $checkbox->setOutput($output);
                 $checkbox->setBounds($checkbox->calculateBounds(cursorX: 0, cursorY: $this->y));
                 $this->y += $checkbox->height - 1;
             }
