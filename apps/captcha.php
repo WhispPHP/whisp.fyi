@@ -395,7 +395,7 @@ class CaptchaGame extends Prompt
             $attempts = 0;
             $validPosition = false;
             
-            while (!$validPosition && $attempts < 150) {
+            while (!$validPosition && $attempts < 800) {
                 // Generate random position on right side
                 $x = rand($rightSideMinX, $rightSideMaxX);
                 $y = rand($minY, $maxY);
