@@ -45,6 +45,7 @@ if (! $user['username']) {
     }
 }
 
+/*
 if ($piping) {
     // Check if we have piped input
     $stdinReader = new StdinReader;
@@ -69,6 +70,7 @@ if ($piping) {
         }
     }
 }
+    */
 
 // No piped input, launch interactive memo prompt
 $prompt = new MemoPrompt($db, $user);
