@@ -5,7 +5,8 @@ require_once __DIR__.'/vendor/autoload.php';
 require_once __DIR__.'/MemoDb.php';
 require_once __DIR__.'/StdinReader.php';
 
-$piping = ! array_key_exists('WHISP_TTY', $_ENV) || empty($_ENV['WHISP_TTY']);
+$whispTty = $_SERVER['WHISP_TTY'] ?? $_ENV['WHISP_TTY'] ?? null;
+$piping = ! $whispTty;
 
 use Apps\MemoPrompt;
 use Apps\StdinReader;
@@ -45,7 +46,6 @@ if (! $user['username']) {
     }
 }
 
-/*
 if ($piping) {
     // Check if we have piped input
     $stdinReader = new StdinReader;
@@ -70,7 +70,6 @@ if ($piping) {
         }
     }
 }
-    */
 
 // No piped input, launch interactive memo prompt
 $prompt = new MemoPrompt($db, $user);
