@@ -6,7 +6,7 @@ namespace Apps;
 
 class StdinReader
 {
-    public function read(int $timeout_sec = 5): ?string
+    public function read(int $timeout_sec = 1): ?string
     {
         $read_streams = [STDIN];
         $write_streams = null;
@@ -22,13 +22,22 @@ class StdinReader
             return null;
         } elseif ($num_ready_streams > 0) {
             // Data is available, read it
+            // Switch to non-blocking mode to read all available data without hanging
+            $initialBlocking = stream_get_meta_data(STDIN)['blocked'] ?? true;
+            stream_set_blocking(STDIN, false);
+
             $input = '';
-            while (($line = fgets(STDIN)) !== false) {
-                $input .= $line;
+            while (($chunk = fgets(STDIN)) !== false) {
+                $input .= $chunk;
+            }
+
+            // Restore original blocking mode
+            if ($initialBlocking) {
+                stream_set_blocking(STDIN, true);
             }
 
             if (! empty($input)) {
-                return $input;
+                return trim($input);
             } else {
                 fwrite(STDERR, "Failed to read from STDIN after data was expected.\n");
 
