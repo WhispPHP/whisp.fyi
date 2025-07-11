@@ -112,7 +112,7 @@ class MemoPrompt extends Prompt
 
             // Calculate how many terminal lines this will wrap to
             $lineLength = mb_strlen($fullLine);
-            $wrappedLines = max(1, ceil($lineLength / $terminalWidth));
+            $wrappedLines = max(1, (int) ceil($lineLength / $terminalWidth));
             $totalLines += $wrappedLines;
         }
 
