@@ -1,5 +1,8 @@
 <?php
 
+// Set terminal title
+echo "\033]0;* MEMOS *\007";
+
 require_once __DIR__.'/vendor/autoload.php';
 
 require_once __DIR__.'/MemoDb.php';
