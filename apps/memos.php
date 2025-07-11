@@ -1,7 +1,7 @@
 <?php
 
 // Set terminal title
-echo "\033]0;* MEMOS *\007";
+echo "\033]0;※ MEMOS ※\007";
 
 require_once __DIR__.'/vendor/autoload.php';
 
