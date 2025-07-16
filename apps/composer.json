@@ -7,7 +7,10 @@
         "soloterm/grapheme": "^1.0",
         "whispphp/prompts-mouse": "^0.0",
         "laravel/pint": "dev-main",
-        "ramsey/uuid": "5.x-dev"
+        "ramsey/uuid": "5.x-dev",
+        "league/commonmark": "^2.8@dev",
+        "amoschou/commonmark-alert-extension": "dev-main",
+        "phiki/phiki": "2.x-dev"
     },
     "minimum-stability": "dev",
     "autoload": {
