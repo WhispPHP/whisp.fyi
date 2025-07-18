@@ -32,20 +32,26 @@ $user = $db->findOrCreateUser($sshKey);
 
 // Check if user needs username
 if (! $user['username']) {
-    $username = text(
-        label: 'Welcome! Please choose a username:',
-        placeholder: 'Enter your username',
-        required: true,
-        validate: fn ($value) => strlen($value) < 3 || preg_match('/^[a-zA-Z0-9]+$/', $value) ? null : 'Username must be at least 3 characters long and alphanumeric',
-    );
+    // Show feed first, then ask for username
+    if (!$piping) {
+        $prompt = new MemoPrompt($db, $user);
+        $prompt->renderOnce();
+        
+        $username = text(
+            label: 'Welcome! Please choose a username:',
+            placeholder: 'Enter your username',
+            required: true,
+            validate: fn ($value) => strlen($value) < 3 || preg_match('/^[a-zA-Z0-9]+$/', $value) ? null : 'Username must be at least 3 characters long and alphanumeric',
+        );
 
-    try {
-        $db->setUsername($user['id'], $username);
-        $user['username'] = $username;
-        info('Registration successful, snazzy!');
-    } catch (Exception $e) {
-        echo 'Error: '.$e->getMessage()."\n";
-        exit(1);
+        try {
+            $db->setUsername($user['id'], $username);
+            $user['username'] = $username;
+            info('Registration successful, snazzy!');
+        } catch (Exception $e) {
+            echo 'Error: '.$e->getMessage()."\n";
+            exit(1);
+        }
     }
 }
 

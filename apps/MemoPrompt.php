@@ -165,7 +165,7 @@ class MemoPrompt extends Prompt
             foreach (mb_str_split($key) as $char) {
                 match ($char) {
                     'r', 'R' => $this->refresh(),
-                    'c', 'C' => $this->createMemo(),
+                    'c', 'C' => $this->user['username'] ? $this->createMemo() : null,
                     'q', 'Q' => $this->quit(),
                     default => null,
                 };
@@ -174,6 +174,13 @@ class MemoPrompt extends Prompt
     }
 
     /* ----------------- Actions ----------------- */
+
+    public function renderOnce(): void
+    {
+        $this->loadMemos();
+        $frame = $this->renderTheme();
+        static::output()->write($frame);
+    }
 
     public function refresh(): void
     {

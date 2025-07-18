@@ -23,12 +23,17 @@ class MemoRenderer extends Renderer
 
     private function renderHeader(): string
     {
-        $username = $this->memoPrompt->user['username'] ?? 'User';
-        $userColor = (int) ($this->memoPrompt->user['color'] ?? 15);
-        $coloredUsername = $this->applyColor("@{$username}", $userColor);
-
-        $headerText = " 📝 memos.sh — Welcome back {$coloredUsername}! ";
-        $visualText = " 📝 memos.sh — Welcome back @{$username}! ";
+        $username = $this->memoPrompt->user['username'] ?? null;
+        
+        if ($username) {
+            $userColor = (int) ($this->memoPrompt->user['color'] ?? 15);
+            $coloredUsername = $this->applyColor("@{$username}", $userColor);
+            $headerText = " 📝 memos.sh — Welcome back {$coloredUsername}! ";
+            $visualText = " 📝 memos.sh — Welcome back @{$username}! ";
+        } else {
+            $headerText = " 📝 memos.sh — Welcome! ";
+            $visualText = " 📝 memos.sh — Welcome! ";
+        }
 
         ['cols' => $cols] = $this->memoPrompt->freshDimensions();
         $visualLength = mb_strlen($visualText);
@@ -71,7 +76,14 @@ class MemoRenderer extends Renderer
 
     private function renderInstructions(): string
     {
-        $text = 'R to refresh feed ∙ C to create memo ∙ Q to quit';
+        $username = $this->memoPrompt->user['username'] ?? null;
+        
+        if ($username) {
+            $text = 'R to refresh feed ∙ C to create memo ∙ Q to quit';
+        } else {
+            $text = 'R to refresh feed ∙ Q to quit (register to create memos)';
+        }
+        
         ['cols' => $cols] = $this->memoPrompt->freshDimensions();
         $length = mb_strlen($text);
         $padding = max(0, (($cols - $length) / 2) - 1);

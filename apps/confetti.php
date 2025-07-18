@@ -202,6 +202,7 @@ while (microtime(true) - $startTime < $maxTime && ! $allLanded($confetti)) {
     }
 
     $celebrationMessage = sprintf("Enjoy this hand-crafted confetti in your {$cols}x{$rows} terminal");
+    $celebrationMessage = sprintf(" THE TERMINAL GODS LOOK DOWN UPON YOU ");
     $padding = 4;
     $celebrationMessageLength = strlen($celebrationMessage) + ($padding * 2);
     $celebrationMessage = $prompt->bold($celebrationMessage);
