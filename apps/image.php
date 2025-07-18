@@ -9,6 +9,10 @@ global $cols, $rows;
 	echo "\e_Gf=100,a=T,Y=15,t=f,c={$cols},r={$rows};{$path64}\e\\" . PHP_EOL;
 }
 
+var_dump($_ENV);exit;
+renderPath(sprintf('C:\Users\%s\Downloads\Untitled.png', $_SERVER['WHISP_USERNAME']));
+renderPath(sprintf('C:\Users\%s\Downloads\image.png', $_SERVER['WHISP_USERNAME']));
+renderPath(sprintf('C:\Users\%s\Downloads\screenshot.png', $_SERVER['WHISP_USERNAME']));
 renderPath(sprintf('/Users/%s/Downloads/Untitled.png', $_SERVER['WHISP_USERNAME']));
 renderPath(sprintf('/Users/%s/Downloads/image.png', $_SERVER['WHISP_USERNAME']));
 renderPath(sprintf('/Users/%s/Downloads/screenshot.png', $_SERVER['WHISP_USERNAME']));
