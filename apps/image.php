@@ -1,6 +1,6 @@
 <?php
-$cols = (int) trim(`tput cols`);
-$rows = (int) trim(`tput lines`);
+$cols = $_SERVER['WHISP_COLS'];//(int) trim(`tput cols`);
+$rows = $_SERVER['WHISP_ROWS'];//(int) trim(`tput lines`);
 
 function renderPath(string $path) {
 global $cols, $rows;
