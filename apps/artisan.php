@@ -11,8 +11,8 @@ $artisan = <<<ASCII
 ASCII;
 
 // Get terminal dimensions
-$cols = (int)exec('tput cols');
-$rows = (int)exec('tput lines');
+$cols = (int)$_SERVER['WHISP_COLS'];
+$rows = (int)$_SERVER['WHISP_ROWS'];
 
 // ANSI color codes
 $red = "\033[38;2;220;53;69m";
