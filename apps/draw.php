@@ -31,20 +31,33 @@ shell_exec('stty -icanon -echo');
 echo "\e[14t";
 fflush(STDOUT);
 
+// Set non-blocking mode to prevent hanging
+stream_set_blocking(STDIN, false);
+usleep(200000); // Wait 200ms for response
+
 $info = '';
-while (($char = fread(STDIN, 1)) !== false) {
-    $info .= $char;
-    if ($char === 't') {
-        break;
+$attempts = 0;
+while ($attempts < 20) {
+    $char = fread(STDIN, 1);
+    if ($char !== false && $char !== '') {
+        $info .= $char;
+        if ($char === 't') {
+            break;
+        }
     }
+    usleep(10000); // 10ms between attempts
+    $attempts++;
 }
+
+// Restore blocking mode
+stream_set_blocking(STDIN, true);
 
 // Parse the response
 if (preg_match('/\x1b\[4;(\d+);(\d+)t/', $info, $matches)) {
     $termHeight = (int)$matches[1];
     $termWidth = (int)$matches[2];
 } else {
-    die("Failed to parse terminal dimensions\n");
+    die("Failed to parse terminal dimensions. Your terminal might not support pixel queries.\nReceived: " . bin2hex($info) . "\nMake sure you're using Kitty, Ghostty, or WezTerm.\n");
 }
 
 // Calculate brush size as 0.5% of terminal width (smaller)
@@ -109,6 +122,10 @@ function drawColorSwatch($x, $y, $size, $r, $g, $b, $id, $withBorder = false, $b
         $borderPayload = base64_encode($borderPixels);
         echo "\033[H";
         echo "\e_Gf=32,s={$borderTotal},v={$borderTotal},a=T,i=" . ($id - 1) . ",X=" . ($x - $borderSize) . ",Y=" . ($y - $borderSize) . ",z=-1;{$borderPayload}\e\\";
+    } else {
+        // Delete the border image if no border wanted
+        echo "\033[H";
+        echo "\e_Ga=d,i=" . ($id - 1) . "\e\\";
     }
 
     // Create RGBA pixel data for the color square
