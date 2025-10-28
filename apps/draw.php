@@ -291,7 +291,6 @@ class Draw
         $sequence = "\e_Gf=32,o=z,s={$width},v={$height},a=T,i={$this->imageId},X={$minX},Y={$minY},z=-1,C=1;{$payload}\e\\";
         echo $sequence;
 
-        // House-keeping
         $this->lastX = $x;
         $this->lastY = $y;
         $this->imageId++;
@@ -365,7 +364,6 @@ if (function_exists('pcntl_signal')) {
 
 echo "Click and drag to draw! Right-click to clear. Press q to quit.\r";
 
-$minDistance = $draw->brushSize * 0.2; // Draw more frequently for smoother lines
 $shouldDraw = false;
 $shouldRun = true;
 
@@ -419,6 +417,8 @@ while ($shouldRun) {
     }
 
     if ($shouldDraw === false) {
+        $draw->lastX = 0;
+        $draw->lastY = 0;
         continue;
     }
 
