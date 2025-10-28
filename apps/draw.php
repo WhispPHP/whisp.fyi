@@ -10,6 +10,10 @@ class Terminal
     protected string $originalStty;
     public int $width;
     public int $height;
+    public int $rows;
+    public int $cols;
+    public int $cellWidth;
+    public int $cellHeight;
     public string $buffer = '';
 
     public function __construct()
@@ -17,6 +21,9 @@ class Terminal
         $this->originalStty = shell_exec('stty -g');
         shell_exec('stty -icanon -echo'); // Raw mode: icanon = no line buffering, echo = no echo
         [$this->height, $this->width] = $this->size();
+        [$this->rows, $this->cols] = $this->gridSize();
+        $this->cellWidth = (int)($this->width / $this->cols);
+        $this->cellHeight = (int)($this->height / $this->rows);
     }
 
     public function read()
@@ -76,6 +83,30 @@ class Terminal
         }
 
         return [(int) $matches[1], (int) $matches[2]];
+    }
+
+    public function gridSize(): array
+    {
+        echo "\e[18t"; // Request grid dimensions (rows, cols)
+        $info = fread(STDIN, 14);
+        $result = preg_match('/\x1b\[8;(\d+);(\d+)t/', $info, $matches);
+
+        if ($result === false || $result === 0) {
+            $this->cleanup();
+            throw new Exception("Failed to parse terminal grid dimensions. Your terminal might not support grid queries.\nReceived: " . bin2hex($info) . "\n");
+        }
+
+        return [(int) $matches[1], (int) $matches[2]];
+    }
+
+    public function pixelToCell(int $xPixel, int $yPixel): array
+    {
+        $col = intdiv($xPixel, $this->cellWidth) + 1;  // CSI cursor positioning is 1-based
+        $row = intdiv($yPixel, $this->cellHeight) + 1;
+        $x = $xPixel % $this->cellWidth;                // Pixel offset within cell
+        $y = $yPixel % $this->cellHeight;
+
+        return [$row, $col, $x, $y];
     }
 }
 
@@ -285,10 +316,21 @@ class Draw
             }
         }
 
-        // Compress, encode, and emit single escape sequence
+        // Convert absolute pixel coords to cell coordinates + offsets
+        [$startRow, $startCol, $offsetX, $offsetY] = $this->terminal->pixelToCell($minX, $minY);
+        [$endRow, $endCol,,] = $this->terminal->pixelToCell($maxX, $maxY);
+
+        // Calculate how many cells we span
+        $cellsWide = $endCol - $startCol + 1;
+        $cellsTall = $endRow - $startRow + 1;
+
+        // Move cursor to starting cell
+        echo "\e[{$startRow};{$startCol}H";
+
+        // Compress, encode, and emit single escape sequence with cell-relative offsets
         $compressed = gzcompress($pixels);
         $payload = base64_encode($compressed);
-        $sequence = "\e_Gf=32,o=z,s={$width},v={$height},a=T,i={$this->imageId},X={$minX},Y={$minY},z=-1,C=1;{$payload}\e\\";
+        $sequence = "\e_Gf=32,o=z,s={$width},v={$height},a=T,X={$offsetX},Y={$offsetY},z=-1,q=1,C=1;{$payload}\e\\";
         echo $sequence;
 
         $this->lastX = $x;
@@ -340,7 +382,6 @@ $draw = new Draw($terminal, generateRandomPastelColor());
 $terminal->trackMouse();
 $terminal->clearText();
 $terminal->hideCursor();
-
 
 // Register shutdown function to ensure cleanup happens no matter how script exits
 register_shutdown_function(function () use ($terminal, $draw) {
