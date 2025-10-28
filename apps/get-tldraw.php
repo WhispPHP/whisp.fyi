@@ -9,7 +9,7 @@ if (empty($sshKey)) {
 
 // Calculate the file path based on SSH key hash
 $userHash = hash('sha256', $sshKey);
-$file = "/tmp/tldraw-{$userHash}.png";
+$file = sys_get_temp_dir() . "/tldraw-{$userHash}.png";
 
 if (!file_exists($file)) {
     fwrite(STDERR, "No drawing found. Draw something first!\n");
