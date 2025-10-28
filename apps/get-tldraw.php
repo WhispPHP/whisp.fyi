@@ -17,8 +17,6 @@ if (!file_exists($file)) {
     exit(1);
 }
 
-fwrite(STDERR, "Downloading...\n");
-
 // Base64 encode the entire file first
 $encoded = base64_encode(file_get_contents($file));
 
