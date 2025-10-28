@@ -172,7 +172,7 @@ class Draw
 {
     public array $color = [];
     public int $brushSize = 15;
-    public int $minDistance = 3;
+    public int $minDistance = 2;
     public int $imageId = 1;
     public int $lastX = 0;
     public int $lastY = 0;
@@ -401,22 +401,7 @@ while ($shouldRun) {
         $draw->lastX = 0;
         $draw->lastY = 0;
         continue;
-    }
-
-    // If the user moved the mouse with **no** button held down, make sure
-    // we also forget the previous stroke’s final position.  This guards
-    // against terminals that sometimes deliver a plain motion event
-    // (button code 35) without a proper release, which would leave
-    // lastX/lastY pointing to the old stroke and let the next drag
-    // generate an overly large bounding box that covers earlier
-    // drawings with transparent pixels.
-    if ($mouse->isMotion()) { // generic motion, no button pressed
-        $draw->lastX = 0;
-        $draw->lastY = 0;
-        continue;
-    }
-
-    if ($shouldDraw === false) {
+    } elseif ($shouldDraw === false) {
         $draw->lastX = 0;
         $draw->lastY = 0;
         continue;
