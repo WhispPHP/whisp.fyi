@@ -235,10 +235,14 @@ class Draw
 {
     public array $color = [];
     public int $brushSize = 15;
-    public int $minDistance = 2;
+    public int $minDistance = 2; // For terminal display smoothness
+    public int $gdMinDistance = 5; // For GD canvas (less frequent, better performance)
     public int $imageId = 1;
     public int $lastX = 0;
     public int $lastY = 0;
+    protected int $gdColor; // Cached GD color resource
+    protected float $lastGdDrawTime = 0; // Track last GD draw time for FPS limiting
+    protected array $gdPointBuffer = []; // Buffer to accumulate GD points between frames
 
     protected Terminal $terminal;
     protected $canvas; // GD image resource for saving
@@ -270,10 +274,28 @@ class Draw
             imagecopy($this->canvas, $bgImage, 0, 0, 0, 0, imagesx($bgImage), imagesy($bgImage));
             imagedestroy($bgImage);
         }
+
+        // Cache color allocation for GD operations (PERFORMANCE OPTIMIZATION)
+        $this->gdColor = imagecolorallocate($this->canvas, $this->color['r'], $this->color['g'], $this->color['b']);
+    }
+
+    public function flushGdBuffer()
+    {
+        // Force draw any remaining buffered GD points
+        if (!empty($this->gdPointBuffer)) {
+            foreach ($this->gdPointBuffer as $c) {
+                imagefilledellipse($this->canvas, $c['x'], $c['y'], $this->brushSize, $this->brushSize, $this->gdColor);
+            }
+            $this->gdPointBuffer = [];
+            $this->lastGdDrawTime = microtime(true);
+        }
     }
 
     public function clear()
     {
+        // Flush any buffered points before clearing
+        $this->flushGdBuffer();
+
         echo "\e_Ga=d\e\\"; // Delete all visible Kitty graphics placements
 	(new Image($this->terminal))->displayPNG(__DIR__ . '/tldraw.png', 1, 1);
         $this->imageId = 1;
@@ -296,6 +318,9 @@ class Draw
             imagecopy($this->canvas, $bgImage, 0, 0, 0, 0, imagesx($bgImage), imagesy($bgImage));
             imagedestroy($bgImage);
         }
+
+        // Re-cache color allocation after canvas reset (PERFORMANCE OPTIMIZATION)
+        $this->gdColor = imagecolorallocate($this->canvas, $this->color['r'], $this->color['g'], $this->color['b']);
     }
 
     public function filled()
@@ -321,13 +346,15 @@ class Draw
         $y -= $brushRadius;
 
         // Collect all centres to be stamped
+        // Terminal display: fine-grained interpolation for smoothness
+        // GD canvas: coarser interpolation for performance
         $centres = [];
         $gdCentres = []; // For GD canvas (actual center coordinates)
 
         if ($this->lastX !== 0 && $this->lastY !== 0) {
             $distance = sqrt(pow($x - $this->lastX, 2) + pow($y - $this->lastY, 2));
 
-            // If we've moved far, collect interpolated centres
+            // Terminal display interpolation (smooth, minDistance = 2)
             if ($distance > $this->minDistance) {
                 $steps = ceil($distance / $this->minDistance);
                 for ($step = 1; $step <= $steps; $step++) {
@@ -335,11 +362,22 @@ class Draw
                     $interpX = (int) ($this->lastX + ($x - $this->lastX) * $t);
                     $interpY = (int) ($this->lastY + ($y - $this->lastY) * $t);
                     $centres[] = ['x' => $interpX, 'y' => $interpY];
+                }
+            } else {
+                $centres[] = ['x' => (int)$x, 'y' => (int)$y];
+            }
+
+            // GD canvas interpolation (coarser, gdMinDistance = 5, better performance)
+            if ($distance > $this->gdMinDistance) {
+                $gdSteps = ceil($distance / $this->gdMinDistance);
+                for ($step = 1; $step <= $gdSteps; $step++) {
+                    $t = $step / $gdSteps;
+                    $interpX = (int) ($this->lastX + ($x - $this->lastX) * $t);
+                    $interpY = (int) ($this->lastY + ($y - $this->lastY) * $t);
                     // GD centres are at the actual center (add brushRadius back)
                     $gdCentres[] = ['x' => $interpX + $brushRadius, 'y' => $interpY + $brushRadius];
                 }
             } else {
-                $centres[] = ['x' => (int)$x, 'y' => (int)$y];
                 $gdCentres[] = ['x' => (int)$centerX, 'y' => (int)$centerY];
             }
         }
@@ -348,17 +386,26 @@ class Draw
         $centres[] = ['x' => (int)$x, 'y' => (int)$y];
         $gdCentres[] = ['x' => (int)$centerX, 'y' => (int)$centerY];
 
-        // Draw to GD canvas for saving
-        $gdColor = imagecolorallocate($this->canvas, $this->color['r'], $this->color['g'], $this->color['b']);
+        // Draw to GD canvas for saving (with FPS limiting to reduce lag)
+        // Buffer points and draw in batches to avoid dropping any strokes
+        // Terminal display continues at full speed below
 
-        // Debug logging
-        static $debugCount = 0;
-        if ($debugCount < 5) {
-            $debugCount++;
+        // Add current points to buffer
+        foreach ($gdCentres as $c) {
+            $this->gdPointBuffer[] = $c;
         }
 
-        foreach ($gdCentres as $c) {
-            imagefilledellipse($this->canvas, $c['x'], $c['y'], $this->brushSize, $this->brushSize, $gdColor);
+        $currentTime = microtime(true);
+        $shouldUpdateGdCanvas = ($currentTime - $this->lastGdDrawTime) >= 0.0166; // ~60 FPS limit for GD
+
+        if ($shouldUpdateGdCanvas && !empty($this->gdPointBuffer)) {
+            // Draw all buffered points at once
+            foreach ($this->gdPointBuffer as $c) {
+                imagefilledellipse($this->canvas, $c['x'], $c['y'], $this->brushSize, $this->brushSize, $this->gdColor);
+            }
+            // Clear buffer after drawing
+            $this->gdPointBuffer = [];
+            $this->lastGdDrawTime = $currentTime;
         }
 
         // Compute bounding box that encompasses all brush discs
@@ -519,6 +566,7 @@ $image->displayPNG(__DIR__ . '/tldraw.png', 1, 1);
 register_shutdown_function(function () use ($terminal, $draw, $sshKey, &$alreadySaved) {
     // Save the drawing if SSH key is available and not already saved
     if (!empty($sshKey) && !$alreadySaved) {
+        $draw->flushGdBuffer(); // Ensure all buffered points are drawn before saving
         $draw->saveToFile($sshKey);
         $alreadySaved = true;
     }
@@ -538,6 +586,7 @@ if (function_exists('pcntl_signal')) {
     $signalHandler = function () use ($terminal, $draw, $sshKey, &$alreadySaved) {
         // Save the drawing if SSH key is available and not already saved
         if (!empty($sshKey) && !$alreadySaved) {
+            $draw->flushGdBuffer(); // Ensure all buffered points are drawn before saving
             $draw->saveToFile($sshKey);
             $alreadySaved = true;
         }
@@ -594,10 +643,12 @@ while ($shouldRun) {
         $draw->clear();
         continue;
     } elseif ($mouse->isReleased()) {
+        $draw->flushGdBuffer(); // Ensure all points are drawn when stroke ends
         $draw->lastX = 0;
         $draw->lastY = 0;
         continue;
     } elseif ($shouldDraw === false) {
+        $draw->flushGdBuffer(); // Ensure all points are drawn when drawing stops
         $draw->lastX = 0;
         $draw->lastY = 0;
         continue;
@@ -608,6 +659,7 @@ while ($shouldRun) {
 
 // Save before cleanup
 if (!empty($sshKey)) {
+    $draw->flushGdBuffer(); // Ensure all buffered points are drawn before saving
     $draw->saveToFile($sshKey);
     $alreadySaved = true;
 }
