@@ -17,6 +17,25 @@ if (!file_exists($file)) {
     exit(1);
 }
 
-fwrite(STDERR, "Downloading...");
-echo base64_encode(file_get_contents($file)) . "\n";
+fwrite(STDERR, "Downloading...\n");
+
+// Read and output file in chunks to avoid buffering issues
+$chunkSize = 8192; // 8KB chunks
+$handle = fopen($file, 'rb');
+if ($handle === false) {
+    fwrite(STDERR, "Failed to open file\n");
+    exit(1);
+}
+
+while (!feof($handle)) {
+    $chunk = fread($handle, $chunkSize);
+    if ($chunk === false) {
+        break;
+    }
+    echo base64_encode($chunk);
+    flush(); // Force output to be sent immediately
+}
+
+fclose($handle);
+echo "\n";
 exit;
