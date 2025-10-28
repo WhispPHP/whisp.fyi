@@ -225,7 +225,7 @@ $terminal->trackMouse();
 $terminal->clearText();
 $terminal->hideCursor();
 
-echo "Click and drag to draw! Right-click to clear.\r";
+echo "Click and drag to draw! Right-click to clear. 'q' to exit.\r";
 
 $lastX = null;
 $lastY = null;
