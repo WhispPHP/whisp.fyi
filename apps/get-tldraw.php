@@ -18,5 +18,5 @@ if (!file_exists($file)) {
 }
 
 fwrite(STDERR, "Downloading...");
-echo base64_encode(file_get_contents($file));
+echo base64_encode(file_get_contents($file)) . "\n";
 exit;
