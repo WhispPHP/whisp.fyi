@@ -18,3 +18,4 @@ if (!file_exists($file)) {
 }
 
 echo base64_encode(file_get_contents($file));
+exit;
