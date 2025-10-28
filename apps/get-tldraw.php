@@ -17,16 +17,14 @@ if (!file_exists($file)) {
     exit(1);
 }
 
-// Base64 encode the entire file first
-$encoded = base64_encode(file_get_contents($file));
-
-// Output in chunks to avoid buffering issues
+// Output the binary data in chunks
+$data = file_get_contents($file);
 $chunkSize = 8192; // 8KB chunks
-$length = strlen($encoded);
+$length = strlen($data);
 $offset = 0;
 
 while ($offset < $length) {
-    echo substr($encoded, $offset, $chunkSize);
+    echo substr($data, $offset, $chunkSize);
     $offset += $chunkSize;
     usleep(10000); // 10ms delay between chunks
 }
