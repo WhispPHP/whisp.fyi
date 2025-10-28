@@ -3,7 +3,7 @@
 $sshKey = $_SERVER['WHISP_USER_PUBLIC_KEY'] ?? $_ENV['WHISP_USER_PUBLIC_KEY'] ?? '';
 
 if (empty($sshKey)) {
-    fwrite(STDERR, "Authentication failed - no SSH key provided\n");
+    echo "Authentication failed - no SSH key provided\n";
     exit(1);
 }
 
@@ -17,5 +17,6 @@ if (!file_exists($file)) {
     exit(1);
 }
 
+fwrite(STDERR, "Downloading...");
 echo base64_encode(file_get_contents($file));
 exit;
