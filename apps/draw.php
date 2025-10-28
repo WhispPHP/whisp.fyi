@@ -316,22 +316,13 @@ class Draw
             }
         }
 
-        // Convert absolute pixel coords to cell coordinates + offsets
-        [$startRow, $startCol, $offsetX, $offsetY] = $this->terminal->pixelToCell($minX, $minY);
-        [$endRow, $endCol,,] = $this->terminal->pixelToCell($maxX, $maxY);
-
-        // Calculate how many cells we span
-        $cellsWide = $endCol - $startCol + 1;
-        $cellsTall = $endRow - $startRow + 1;
-
-        // Move cursor to starting cell
-        echo "\e[{$startRow};{$startCol}H";
-
-        // Compress, encode, and emit single escape sequence with cell-relative offsets
         $compressed = gzcompress($pixels);
         $payload = base64_encode($compressed);
-        $sequence = "\e_Gf=32,o=z,s={$width},v={$height},a=T,X={$offsetX},Y={$offsetY},z=-1,q=1,C=1;{$payload}\e\\";
-        echo $sequence;
+
+        // Convert absolute pixel coords to cell coordinates + offsets
+        [$startRow, $startCol, $offsetX, $offsetY] = $this->terminal->pixelToCell($minX, $minY);
+        echo "\e[{$startRow};{$startCol}H";
+        echo "\e_Gf=32,o=z,s={$width},v={$height},a=T,X={$offsetX},Y={$offsetY},z=-1,q=1,C=1;{$payload}\e\\";
 
         $this->lastX = $x;
         $this->lastY = $y;
