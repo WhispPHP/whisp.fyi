@@ -199,6 +199,38 @@ class Mouse
     }
 }
 
+class Image
+{
+    public function __construct(protected Terminal $terminal)
+    {
+    }
+
+    public function displayPNG(string $filePath, int $row = 1, int $col = 1): ?array
+    {
+        if (!file_exists($filePath)) {
+            return null;
+        }
+
+        $imageData = file_get_contents($filePath);
+        $imageInfo = getimagesize($filePath);
+
+        if ($imageInfo === false) {
+            return null;
+        }
+
+        [$width, $height] = $imageInfo;
+
+        // Encode the PNG data
+        $payload = base64_encode($imageData);
+
+        // Position cursor and display image using Kitty graphics protocol
+        echo "\e[{$row};{$col}H";
+        echo "\e_Gf=100,a=T,t=d,s={$width},v={$height},z=1;{$payload}\e\\";
+
+        return [$width, $height];
+    }
+}
+
 class Draw
 {
     public array $color = [];
@@ -224,6 +256,7 @@ class Draw
     public function clear()
     {
         echo "\e_Ga=d\e\\"; // Delete all visible Kitty graphics placements
+	(new Image($this->terminal))->displayPNG(__DIR__ . '/tldraw.png', 1, 1);
         $this->imageId = 1;
     }
 
@@ -368,11 +401,15 @@ function generateRandomPastelColor(): string
 
 $terminal = new Terminal();
 $draw = new Draw($terminal, generateRandomPastelColor());
+$image = new Image($terminal);
 
 // Enable mouse tracking with pixel precision
 $terminal->trackMouse();
 $terminal->clearText();
 $terminal->hideCursor();
+
+// Display logo and title
+$image->displayPNG(__DIR__ . '/tldraw.png', 1, 1);
 
 // Register shutdown function to ensure cleanup happens no matter how script exits
 register_shutdown_function(function () use ($terminal, $draw) {
@@ -394,7 +431,9 @@ if (function_exists('pcntl_signal')) {
     pcntl_signal(SIGTERM, $signalHandler); // kill command
 }
 
-echo "Click and drag to draw! Right-click to clear. Press q to quit.\r";
+// Position instructions below the logo
+$instructionsRow = 3;
+echo "\e[{$instructionsRow};1HClick and drag to draw! Right-click to clear. Press q to quit.\r";
 
 $shouldDraw = false;
 $shouldRun = true;
