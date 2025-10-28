@@ -1,333 +1,310 @@
 <?php
+// Few parts that goes into this:
+// 1. Find out terminal dimensions, in pixels
+// 2. Detect mouse position & button state
+// 3. Draw at the mouse position
+// 4. Tidy up the drawings (alt buffer)
 
-// Save current terminal settings
-$stty_settings = shell_exec('stty -g');
+class Terminal
+{
+    protected string $originalStty;
+    public int $width;
+    public int $height;
+    public string $buffer = '';
 
-// Function to cleanup terminal on exit
-function cleanup() {
-    global $stty_settings;
-    echo "\e_Ga=d\e\\";   // Delete all visible Kitty graphics placements
-    echo "\033[2J\033[H"; // Clear screen and move to home
-    echo "\033[?1003l";   // Disable mouse tracking
-    echo "\033[?1016l";   // Disable SGR pixel mode
-    echo "\033[?25h";     // Show cursor
-    echo "\n\nCleaning up...\n";
-    shell_exec("stty $stty_settings");
-    exit(0);
-}
-
-// Register signal handlers for graceful shutdown
-pcntl_signal(SIGINT, function() {
-    cleanup();
-});
-pcntl_signal(SIGTERM, function() {
-    cleanup();
-});
-
-// Put terminal in raw mode
-shell_exec('stty -icanon -echo');
-
-// Request pixel dimensions
-echo "\e[14t";
-fflush(STDOUT);
-
-// Set non-blocking mode to prevent hanging
-stream_set_blocking(STDIN, false);
-usleep(200000); // Wait 200ms for response
-
-$info = '';
-$attempts = 0;
-while ($attempts < 20) {
-    $char = fread(STDIN, 1);
-    if ($char !== false && $char !== '') {
-        $info .= $char;
-        if ($char === 't') {
-            break;
-        }
+    public function __construct()
+    {
+        $this->originalStty = shell_exec('stty -g');
+        shell_exec('stty -icanon -echo'); // Raw mode: icanon = no line buffering, echo = no echo
+        [$this->height, $this->width] = $this->size();
     }
-    usleep(10000); // 10ms between attempts
-    $attempts++;
+
+    public function read()
+    {
+        $this->buffer .= fread(STDIN, 1);
+        return $this->buffer;
+    }
+
+    public function clearBuffer()
+    {
+        $this->buffer = '';
+    }
+
+    public function trackMouse()
+    {
+        echo "\033[?1003h";  // Track all mouse events
+        echo "\033[?1016h";  // Use SGR pixel format
+    }
+
+    public function untrackMouse()
+    {
+        echo "\033[?1003l";   // Disable mouse tracking
+        echo "\033[?1016l";   // Disable SGR pixel mode
+    }
+
+    public function hideCursor()
+    {
+        echo "\033[?25l";
+    }
+
+    public function showCursor()
+    {
+        echo "\033[?25h";
+    }
+
+    public function clearText()
+    {
+        echo "\033[2J\033[H"; // Clear screen and move to home
+    }
+
+    public function cleanup()
+    {
+        $this->untrackMouse();
+        $this->showCursor();
+        shell_exec("stty $this->originalStty");
+    }
+
+    public function size(): array
+    {
+        echo "\e[14t"; // Request pixel dimensions (CSI )
+        $info = fread(STDIN, 14);
+        preg_match('/\x1b\[4;(\d+);(\d+)t/', $info, $matches) || exit("Failed to parse terminal dimensions. Your terminal might not support pixel queries.\nReceived: " . bin2hex($info) . "\nMake sure you're using Kitty, Ghostty, or WezTerm.\n");
+        return [(int) $matches[1], (int) $matches[2]];
+    }
 }
 
-// Restore blocking mode
-stream_set_blocking(STDIN, true);
+class Mouse
+{
+    public bool $isMouseEvent = false;
+    public int $button = 0;
+    public int $x = 0;
+    public int $y = 0;
+    public string $event = '';
+    public bool $down = false;
+    public bool $isShift = false;
+    public bool $isAlt = false;
+    public bool $isCtrl = false;
 
-// Parse the response
-if (preg_match('/\x1b\[4;(\d+);(\d+)t/', $info, $matches)) {
-    $termHeight = (int)$matches[1];
-    $termWidth = (int)$matches[2];
-} else {
-    die("Failed to parse terminal dimensions. Your terminal might not support pixel queries.\nReceived: " . bin2hex($info) . "\nMake sure you're using Kitty, Ghostty, or WezTerm.\n");
+    public function __construct(protected string $buffer)
+    {
+        $this->parseMouseEvent($buffer);
+    }
+
+    public function parseMouseEvent(string $buffer): void
+    {
+        $this->isMouseEvent = preg_match('/\x1b\[<(?<button>\d+);(?<x>\d+);(?<y>\d+)(?<event>[Mm])/', $buffer, $matches);
+        if ($this->isMouseEvent === false || $this->isMouseEvent === 0) {
+            $this->isMouseEvent = false;
+            return;
+        }
+
+        $this->button = (int) $matches['button'];
+        $this->x = (int) $matches['x'];
+        $this->y = (int) $matches['y'];
+        $this->event = $matches['event'];
+        $this->down = $this->event === 'M';
+        $this->isShift = ($this->button & 4) !== 0;
+        $this->isAlt = ($this->button & 8) !== 0;
+        $this->isCtrl = ($this->button & 16) !== 0;
+
+        $this->button = $this->button & 3; // Get the actual button (0=left, 1=middle, 2=right, 3=released, 32=motion_left, 33=motion_middle, 34=motion_right, 35=motion, 64=scroll wheel up, 65=scroll wheel down)
+    }
+
+    public function isLeftButton(): bool
+    {
+        return $this->button === 0;
+    }
+
+    public function isRightButton(): bool
+    {
+        return $this->button === 2;
+    }
+
+    public function isMiddleButton(): bool
+    {
+        return $this->button === 1;
+    }
+
+    public function isReleased(): bool
+    {
+        return $this->button === 3;
+    }
+
+    public function isMotion(): bool
+    {
+        return $this->button === 35;
+    }
+
+    public function isScrollWheelUp(): bool
+    {
+        return $this->button === 64;
+    }
+
+    public function isScrollWheelDown(): bool
+    {
+        return $this->button === 65;
+    }
+
+    public function isLeftButtonHeld(): bool
+    {
+        return $this->button === 0 || $this->button === 32;
+    }
+
+    public function isRightButtonHeld(): bool
+    {
+        return $this->button === 2 || $this->button === 33;
+    }
+
+    public function isMiddleButtonHeld(): bool
+    {
+        return $this->button === 1 || $this->button === 34;
+    }
 }
 
-// Calculate brush size as 0.5% of terminal width (smaller)
-$brushSize = (int)($termWidth * 0.005);
+class Draw
+{
+    public array $color = [];
+    public int $brushSize = 15;
+    public int $brushSizeMin = 5;
+    public int $brushSizeMax = 50;
+    public int $imageId = 1;
 
-// Brush color: #af87ff (default)
-$brushR = 175;
-$brushG = 135;
-$brushB = 255;
+    protected Terminal $terminal;
 
-// Color palette
-$colors = [
-    ['r' => 255, 'g' => 0, 'b' => 0],     // Red
-    ['r' => 255, 'g' => 127, 'b' => 0],   // Orange
-    ['r' => 255, 'g' => 255, 'b' => 0],   // Yellow
-    ['r' => 0, 'g' => 255, 'b' => 0],     // Green
-    ['r' => 0, 'g' => 255, 'b' => 255],   // Cyan
-    ['r' => 0, 'g' => 0, 'b' => 255],     // Blue
-    ['r' => 175, 'g' => 135, 'b' => 255], // Purple (default)
-    ['r' => 255, 'g' => 0, 'b' => 255],   // Magenta
-    ['r' => 255, 'g' => 255, 'b' => 255], // White
-    ['r' => 0, 'g' => 0, 'b' => 0],       // Black
-];
+    public function __construct(Terminal $terminal, string $color)
+    {
+        $this->terminal = $terminal;
+        $this->color = [
+            'r' => hexdec(substr($color, 0, 2)),
+            'g' => hexdec(substr($color, 2, 2)),
+            'b' => hexdec(substr($color, 4, 2)),
+            'a' => 255,
+        ];
+    }
 
-// Color swatch settings
-$swatchSize = 60;
-$borderSize = 4;
-$numColors = count($colors);
-$totalSwatchWidth = $numColors * $swatchSize;
-$spacing = ($termWidth - $totalSwatchWidth) / ($numColors + 1);
-$swatchY = $termHeight - $swatchSize - 20;
+    public function clear()
+    {
+        echo "\e_Ga=d\e\\"; // Delete all visible Kitty graphics placements
+        $this->imageId = 1;
+    }
 
-// Color swatch bounds for hover detection
-$colorSwatches = [];
-$activeSwatchIndex = 6; // Start with purple (index 6)
+    public function draw(int $x, int $y)
+    {
+        $id = $this->imageId++;
+        $brushRadius = $this->brushSize / 2;
+
+        // Create RGBA pixel data for a circle
+        $pixels = '';
+        for ($py = 0; $py < $this->brushSize; $py++) {
+            for ($px = 0; $px < $this->brushSize; $px++) {
+                $dx = $px - $brushRadius;
+                $dy = $py - $brushRadius;
+                $distance = sqrt($dx * $dx + $dy * $dy);
+
+                if ($distance <= $brushRadius) {
+                    // Inside circle - use brush color
+                    $pixels .= chr($this->color['r']) . chr($this->color['g']) . chr($this->color['b']) . chr(255);
+                } else {
+                    // Outside circle - transparent
+                    $pixels .= chr(0) . chr(0) . chr(0) . chr(0);
+                }
+            }
+        }
+
+        $payload = base64_encode($pixels);
+
+        echo "\e_Gf=32,s={$this->brushSize},v={$this->brushSize},a=T,i={$id},X={$x},Y={$y},z=-1,C=1;{$payload}\e\\";
+    }
+}
+
+$terminal = new Terminal();
+$draw = new Draw($terminal, 'af87ff');
 
 // Enable mouse tracking with pixel precision
-echo "\033[?1003h";  // Track all mouse events
-echo "\033[?1016h";  // Use SGR pixel format
-fflush(STDOUT);
+$terminal->trackMouse();
+$terminal->clearText();
+$terminal->hideCursor();
 
-// Clear screen and hide cursor
-echo "\033[2J\033[H\033[?25l";
+echo "Click and drag to draw! Right-click to clear.\r";
 
-echo "Terminal: {$termWidth}x{$termHeight}px, Brush size: {$brushSize}px\n";
-echo "Click and drag to draw! Right-click to clear. Hover over colors to switch.\n\n";
-
-// Function to draw a color swatch square with optional border
-function drawColorSwatch($x, $y, $size, $r, $g, $b, $id, $withBorder = false, $borderSize = 4) {
-    $x = (int)$x;
-    $y = (int)$y;
-
-    if ($withBorder) {
-        // Draw white border background first
-        $borderTotal = $size + ($borderSize * 2);
-        $borderPixels = '';
-        for ($py = 0; $py < $borderTotal; $py++) {
-            for ($px = 0; $px < $borderTotal; $px++) {
-                $borderPixels .= chr(255) . chr(255) . chr(255) . chr(255); // White
-            }
-        }
-        $borderPayload = base64_encode($borderPixels);
-        echo "\033[H";
-        echo "\e_Gf=32,s={$borderTotal},v={$borderTotal},a=T,i=" . ($id - 1) . ",X=" . ($x - $borderSize) . ",Y=" . ($y - $borderSize) . ",z=-1;{$borderPayload}\e\\";
-    } else {
-        // Delete the border image if no border wanted
-        echo "\033[H";
-        echo "\e_Ga=d,i=" . ($id - 1) . "\e\\";
-    }
-
-    // Create RGBA pixel data for the color square
-    $pixels = '';
-    for ($py = 0; $py < $size; $py++) {
-        for ($px = 0; $px < $size; $px++) {
-            $pixels .= chr($r) . chr($g) . chr($b) . chr(255);
-        }
-    }
-
-    $payload = base64_encode($pixels);
-
-    echo "\033[H";
-    echo "\e_Gf=32,s={$size},v={$size},a=T,i={$id},X={$x},Y={$y},z=-1;{$payload}\e\\";
-    fflush(STDOUT);
-}
-
-// Draw color palette swatches
-$swatchId = 1000000; // Use high IDs to avoid conflicts with brush strokes
-for ($i = 0; $i < $numColors; $i++) {
-    $swatchX = (int)($spacing * ($i + 1) + $swatchSize * $i);
-
-    // Draw with border if this is the active swatch
-    $isActive = ($i === $activeSwatchIndex);
-    drawColorSwatch($swatchX, $swatchY, $swatchSize, $colors[$i]['r'], $colors[$i]['g'], $colors[$i]['b'], $swatchId + ($i * 2) + 1, $isActive, $borderSize);
-
-    // Store bounds for hover detection
-    $colorSwatches[] = [
-        'x1' => $swatchX,
-        'y1' => $swatchY,
-        'x2' => $swatchX + $swatchSize,
-        'y2' => $swatchY + $swatchSize,
-        'color' => $colors[$i],
-        'x' => $swatchX,
-        'index' => $i
-    ];
-}
-
-// Function to draw a circular brush at a given position
-function drawBrush($x, $y, $brushSize, $r, $g, $b, $id) {
-    // Ensure coordinates are integers
-    $x = (int)$x;
-    $y = (int)$y;
-
-    $brushRadius = $brushSize / 2;
-
-    // Create RGBA pixel data for a circle
-    $pixels = '';
-    for ($py = 0; $py < $brushSize; $py++) {
-        for ($px = 0; $px < $brushSize; $px++) {
-            $dx = $px - $brushRadius;
-            $dy = $py - $brushRadius;
-            $distance = sqrt($dx * $dx + $dy * $dy);
-
-            if ($distance <= $brushRadius) {
-                // Inside circle - use brush color
-                $pixels .= chr($r) . chr($g) . chr($b) . chr(255);
-            } else {
-                // Outside circle - transparent
-                $pixels .= chr(0) . chr(0) . chr(0) . chr(0);
-            }
-        }
-    }
-
-    $payload = base64_encode($pixels);
-
-    // Move cursor to home position, then send graphics command
-    echo "\033[H"; // Move cursor to home (1,1)
-    echo "\e_Gf=32,s={$brushSize},v={$brushSize},a=T,i={$id},X={$x},Y={$y},z=-1;{$payload}\e\\";
-    fflush(STDOUT);
-}
-
-// Read mouse events
-$buffer = '';
-$imageId = 1;
 $lastX = null;
 $lastY = null;
-$minDistance = $brushSize * 0.2; // Draw more frequently for smoother lines
-$leftButtonDown = false;
+$minDistance = $draw->brushSize * 0.2; // Draw more frequently for smoother lines
+$shouldDraw = false;
+$shouldRun = true;
 
-try {
-    while (true) {
-        // Dispatch signals
-        pcntl_signal_dispatch();
+while ($shouldRun) {
+    $buffer = $terminal->read();
+    if ($buffer === false) {
+        $shouldRun = false;
+        break;
+    }
 
-        $char = fread(STDIN, 1);
-        if ($char === false) break;
+    if ($buffer === 'q') {
+        $shouldRun = false;
+        break;
+    }
 
-        $buffer .= $char;
+    if ($buffer === 'c') {
+        $draw->clear();
+        continue;
+    }
 
-        // SGR pixel format: ESC[<Cb;Cx;Cy;M or ESC[<Cb;Cx;Cy;m
-        if (preg_match('/\x1b\[<(\d+);(\d+);(\d+)([Mm])/', $buffer, $matches)) {
-            $button = (int)$matches[1];
-            $pixelX = (int)$matches[2];
-            $pixelY = (int)$matches[3];
-            $event = $matches[4]; // M = press, m = release
+    $mouse = new Mouse($buffer);
+    if ($mouse->isMouseEvent === false) {
+        continue;
+    }
 
-            // Check if hovering over a color swatch
-            foreach ($colorSwatches as $swatch) {
-                if ($pixelX >= $swatch['x1'] && $pixelX <= $swatch['x2'] &&
-                    $pixelY >= $swatch['y1'] && $pixelY <= $swatch['y2']) {
+    $shouldDraw = $mouse->isLeftButtonHeld();
+    $shouldClear = $mouse->isRightButton() && $mouse->down;
 
-                    // Only update if switching to a different color
-                    if ($swatch['index'] !== $activeSwatchIndex) {
-                        $oldActiveIndex = $activeSwatchIndex;
-                        $activeSwatchIndex = $swatch['index'];
+    if ($shouldClear) {
+        $draw->clear();
+        $terminal->clearBuffer();
+        continue;
+    } elseif ($mouse->isReleased()) {
+        $lastX = null;
+        $lastY = null;
+        $terminal->clearBuffer();
+        continue;
+    }
 
-                        // Switch to this color
-                        $brushR = $swatch['color']['r'];
-                        $brushG = $swatch['color']['g'];
-                        $brushB = $swatch['color']['b'];
+    if ($shouldDraw === false) {
+        $terminal->clearBuffer();
+        continue;
+    }
 
-                        // Redraw old active swatch without border
-                        $oldSwatch = $colorSwatches[$oldActiveIndex];
-                        drawColorSwatch($oldSwatch['x'], $swatchY, $swatchSize,
-                            $colors[$oldActiveIndex]['r'], $colors[$oldActiveIndex]['g'], $colors[$oldActiveIndex]['b'],
-                            $swatchId + ($oldActiveIndex * 2) + 1, false, $borderSize);
+    // Interpolate between points if moved too far (fills gaps from fast movement)
+    // Add after we have/show the dotted approach
+    if ($lastX !== null && $lastY !== null) {
+        $distance = sqrt(pow($mouse->x - $lastX, 2) + pow($mouse->y - $lastY, 2));
 
-                        // Redraw new active swatch with border
-                        drawColorSwatch($swatch['x'], $swatchY, $swatchSize,
-                            $swatch['color']['r'], $swatch['color']['g'], $swatch['color']['b'],
-                            $swatchId + ($swatch['index'] * 2) + 1, true, $borderSize);
-                    }
-                    break;
-                }
+        // If we've moved far, draw intermediate points
+        if ($distance > $minDistance) {
+            $steps = ceil($distance / $minDistance);
+            for ($step = 1; $step <= $steps; $step++) {
+                $t = $step / $steps;
+                $interpX = ($lastX + ($mouse->x - $lastX) * $t);
+                $interpY = ($lastY + ($mouse->y - $lastY) * $t);
+
+                $drawX = $interpX - ($draw->brushSize / 2);
+                $drawY = $interpY - ($draw->brushSize / 2);
+
+                $draw->draw((int)$drawX, (int)$drawY);
             }
-
-            // Track button state
-            if ($button === 0 && $event === 'M') {
-                // Left button pressed
-                $leftButtonDown = true;
-            } elseif ($button === 2 && $event === 'M') {
-                // Right button pressed - clear all drawings
-                echo "\e_Ga=d\e\\";
-                fflush(STDOUT);
-                $imageId = 1; // Reset image counter
-
-                // Redraw color swatches with active border
-                for ($i = 0; $i < $numColors; $i++) {
-                    $swatchX = (int)($spacing * ($i + 1) + $swatchSize * $i);
-                    $isActive = ($i === $activeSwatchIndex);
-                    drawColorSwatch($swatchX, $swatchY, $swatchSize, $colors[$i]['r'], $colors[$i]['g'], $colors[$i]['b'],
-                        $swatchId + ($i * 2) + 1, $isActive, $borderSize);
-                }
-
-                $buffer = '';
-                continue;
-            } elseif ($event === 'm') {
-                // Any button released
-                $leftButtonDown = false;
-                $lastX = null;
-                $lastY = null;
-            }
-
-            // Only draw if left button is held down (button 0 pressed or button 32 motion)
-            $isLeftButtonHeld = ($button === 0 || $button === 32) && $leftButtonDown;
-
-            if ($isLeftButtonHeld) {
-                // Interpolate between points if moved too far (fills gaps from fast movement)
-                if ($lastX !== null && $lastY !== null) {
-                    $distance = sqrt(pow($pixelX - $lastX, 2) + pow($pixelY - $lastY, 2));
-
-                    // If we've moved far, draw intermediate points
-                    if ($distance > $minDistance) {
-                        $steps = ceil($distance / $minDistance);
-                        for ($step = 1; $step <= $steps; $step++) {
-                            $t = $step / $steps;
-                            $interpX = (int)($lastX + ($pixelX - $lastX) * $t);
-                            $interpY = (int)($lastY + ($pixelY - $lastY) * $t);
-
-                            $drawX = $interpX - ($brushSize / 2);
-                            $drawY = $interpY - ($brushSize / 2);
-
-                            drawBrush($drawX, $drawY, $brushSize, $brushR, $brushG, $brushB, $imageId++);
-                        }
-                    } else {
-                        // Normal draw
-                        $drawX = $pixelX - ($brushSize / 2);
-                        $drawY = $pixelY - ($brushSize / 2);
-                        drawBrush($drawX, $drawY, $brushSize, $brushR, $brushG, $brushB, $imageId++);
-                    }
-                } else {
-                    // First point
-                    $drawX = $pixelX - ($brushSize / 2);
-                    $drawY = $pixelY - ($brushSize / 2);
-                    drawBrush($drawX, $drawY, $brushSize, $brushR, $brushG, $brushB, $imageId++);
-                }
-
-                // Update last position
-                $lastX = $pixelX;
-                $lastY = $pixelY;
-            }
-
-            // Clear the buffer
-            $buffer = '';
-        }
-
-        // Keep buffer from growing too large
-        if (strlen($buffer) > 100) {
-            $buffer = substr($buffer, -50);
         }
     }
-} finally {
-    cleanup();
+    // First point
+    $drawX = $mouse->x - ($draw->brushSize / 2);
+    $drawY = $mouse->y - ($draw->brushSize / 2);
+    $draw->draw((int)$drawX, (int)$drawY);
+
+    // Update last position
+    $lastX = $mouse->x;
+    $lastY = $mouse->y;
+
+    $terminal->clearBuffer();
 }
+
+$terminal->cleanup();
+$draw->clear();
