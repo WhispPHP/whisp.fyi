@@ -1,4 +1,7 @@
 <?php
+// Disable output post-processing for binary data transfer
+shell_exec('stty -opost -onlcr');
+
 // Get SSH key from environment
 $sshKey = $_SERVER['WHISP_USER_PUBLIC_KEY'] ?? $_ENV['WHISP_USER_PUBLIC_KEY'] ?? '';
 

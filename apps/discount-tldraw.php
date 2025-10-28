@@ -19,7 +19,7 @@ class Terminal
     public function __construct()
     {
         $this->originalStty = shell_exec('stty -g');
-        shell_exec('stty -icanon -echo'); // Raw mode: icanon = no line buffering, echo = no echo
+        shell_exec('stty -icanon -echo opost onlcr'); // Raw mode with output post-processing (NL->CRNL)
         [$this->height, $this->width] = $this->size();
         [$this->rows, $this->cols] = $this->gridSize();
         $this->cellWidth = (int)($this->width / $this->cols);
@@ -243,6 +243,8 @@ class Draw
     protected int $gdColor; // Cached GD color resource
     protected float $lastGdDrawTime = 0; // Track last GD draw time for FPS limiting
     protected array $gdPointBuffer = []; // Buffer to accumulate GD points between frames
+    public bool $saved = false; // Track if we've saved the drawing
+    public bool $displayedSaved = false; // Track if we've displayed the save instructions
 
     protected Terminal $terminal;
     protected $canvas; // GD image resource for saving
@@ -321,6 +323,9 @@ class Draw
 
         // Re-cache color allocation after canvas reset (PERFORMANCE OPTIMIZATION)
         $this->gdColor = imagecolorallocate($this->canvas, $this->color['r'], $this->color['g'], $this->color['b']);
+
+        // Reset display flag so we can show save instructions again
+        $this->displayedSaved = false;
     }
 
     public function filled()
@@ -477,6 +482,7 @@ class Draw
         $path = sys_get_temp_dir() . "/tldraw-{$userHash}.png";
 
         imagepng($this->canvas, $path);
+        $this->saved = true;
 
         return $path;
     }
@@ -503,8 +509,8 @@ function displayDownloadInstructions(): void
     // "Download your masterpiece with:" is 31 chars, plus 2 leading spaces = 33 total
     echo "{$magenta}│{$reset}  {$white}Download your masterpiece with:{$reset}" . str_repeat(' ', 38) . "{$magenta}│{$reset}\n";
     echo "{$magenta}│{$reset}" . str_repeat(' ', $boxWidth) . "{$magenta}│{$reset}\n";
-    // "ssh get-tldraw@whisp.fyi | base64 -d > my-drawing.png" is 53 chars, plus 2 leading spaces = 55 total
-    echo "{$magenta}│{$reset}  {$bold}{$cyan}ssh get-tldraw@whisp.fyi | base64 -d > my-drawing.png{$reset}" . str_repeat(' ', 16) . "{$magenta}│{$reset}\n";
+    // "ssh get-tldraw@whisp.fyi > my-drawing.png" is 53 chars, plus 2 leading spaces = 55 total
+    echo "{$magenta}│{$reset}  {$bold}{$cyan}ssh get-tldraw@whisp.fyi > my-drawing.png{$reset}" . str_repeat(' ', 28) . "{$magenta}│{$reset}\n";
     echo "{$magenta}│{$reset}" . str_repeat(' ', $boxWidth) . "{$magenta}│{$reset}\n";
     echo "{$magenta}╰" . str_repeat('─', $boxWidth) . "╯{$reset}\n";
     echo "\n";
@@ -548,7 +554,6 @@ function generateRandomPastelColor(): string
 
 // Get SSH key for user identification
 $sshKey = $_SERVER['WHISP_USER_PUBLIC_KEY'] ?? $_ENV['WHISP_USER_PUBLIC_KEY'] ?? '';
-$alreadySaved = false;
 
 $terminal = new Terminal();
 $draw = new Draw($terminal, generateRandomPastelColor());
@@ -563,40 +568,42 @@ $terminal->hideCursor();
 $image->displayPNG(__DIR__ . '/tldraw.png', 1, 1);
 
 // Register shutdown function to ensure cleanup happens no matter how script exits
-register_shutdown_function(function () use ($terminal, $draw, $sshKey, &$alreadySaved) {
+register_shutdown_function(function () use ($terminal, $draw, $sshKey) {
     // Save the drawing if SSH key is available and not already saved
-    if (!empty($sshKey) && !$alreadySaved) {
+    if (!empty($sshKey) && !$draw->saved) {
         $draw->flushGdBuffer(); // Ensure all buffered points are drawn before saving
         $draw->saveToFile($sshKey);
-        $alreadySaved = true;
     }
 
+    // Always cleanup terminal
     $terminal->cleanup();
     $draw->clear();
 
-    // Show download instructions if saved
-    if (!empty($sshKey)) {
+    // Show download instructions if we saved and haven't displayed yet
+    if (!empty($sshKey) && $draw->saved && !$draw->displayedSaved) {
         displayDownloadInstructions();
+        $draw->displayedSaved = true;
     }
 });
 
 // Handle signals (Ctrl+C, etc.) if pcntl is available
 if (function_exists('pcntl_signal')) {
     pcntl_async_signals(true);
-    $signalHandler = function () use ($terminal, $draw, $sshKey, &$alreadySaved) {
+    $signalHandler = function () use ($terminal, $draw, $sshKey) {
         // Save the drawing if SSH key is available and not already saved
-        if (!empty($sshKey) && !$alreadySaved) {
+        if (!empty($sshKey) && !$draw->saved) {
             $draw->flushGdBuffer(); // Ensure all buffered points are drawn before saving
             $draw->saveToFile($sshKey);
-            $alreadySaved = true;
         }
 
+        // Always cleanup terminal
         $terminal->cleanup();
         $draw->clear();
 
-        // Show download instructions if saved
-        if (!empty($sshKey)) {
+        // Show download instructions if we saved and haven't displayed yet
+        if (!empty($sshKey) && $draw->saved && !$draw->displayedSaved) {
             displayDownloadInstructions();
+            $draw->displayedSaved = true;
         }
 
         exit(0);
@@ -658,16 +665,16 @@ while ($shouldRun) {
 }
 
 // Save before cleanup
-if (!empty($sshKey)) {
+if (!empty($sshKey) && !$draw->saved) {
     $draw->flushGdBuffer(); // Ensure all buffered points are drawn before saving
     $draw->saveToFile($sshKey);
-    $alreadySaved = true;
 }
 
 $terminal->cleanup();
 $draw->clear();
 
-// Show download instructions
-if (!empty($sshKey)) {
+// Show download instructions if we saved and haven't displayed yet
+if (!empty($sshKey) && $draw->saved && !$draw->displayedSaved) {
     displayDownloadInstructions();
+    $draw->displayedSaved = true;
 }
