@@ -68,7 +68,12 @@ class Terminal
     {
         echo "\e[14t"; // Request pixel dimensions (CSI )
         $info = fread(STDIN, 14);
-        preg_match('/\x1b\[4;(\d+);(\d+)t/', $info, $matches) || exit("Failed to parse terminal dimensions. Your terminal might not support pixel queries.\nReceived: " . bin2hex($info) . "\nMake sure you're using Kitty, Ghostty, or WezTerm.\n");
+        $dimensions = preg_match('/\x1b\[4;(\d+);(\d+)t/', $info, $matches);
+
+	if (!$dimensions) {
+		$this->cleanup();
+		exit("Failed to parse terminal dimensions. Your terminal might not support pixel queries.\nReceived: " . bin2hex($info) . "\nMake sure you're using Kitty, Ghostty, or WezTerm.\n");
+	}
         return [(int) $matches[1], (int) $matches[2]];
     }
 }
@@ -260,7 +265,7 @@ while ($shouldRun) {
         break;
     }
 
-    if ($buffer === 'q') {
+    if ($buffer === 'q' || substr($buffer, -1, 1) === 'q') {
         $shouldRun = false;
         break;
     }
@@ -274,23 +279,21 @@ while ($shouldRun) {
     if ($mouse->isMouseEvent === false) {
         continue;
     }
+    $terminal->clearBuffer();
 
     $shouldDraw = $mouse->isLeftButtonHeld();
     $shouldClear = $mouse->isRightButton() && $mouse->down;
 
     if ($shouldClear) {
         $draw->clear();
-        $terminal->clearBuffer();
         continue;
     } elseif ($mouse->isReleased()) {
         $lastX = null;
         $lastY = null;
-        $terminal->clearBuffer();
         continue;
     }
 
     if ($shouldDraw === false) {
-        $terminal->clearBuffer();
         continue;
     }
 
@@ -322,8 +325,6 @@ while ($shouldRun) {
     // Update last position
     $lastX = $mouse->x;
     $lastY = $mouse->y;
-
-    $terminal->clearBuffer();
 }
 
 $terminal->cleanup();
