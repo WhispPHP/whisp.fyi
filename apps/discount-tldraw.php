@@ -241,6 +241,7 @@ class Draw
     public int $lastY = 0;
 
     protected Terminal $terminal;
+    protected $canvas; // GD image resource for saving
 
     public function __construct(Terminal $terminal, string $color)
     {
@@ -251,6 +252,24 @@ class Draw
             'b' => hexdec(substr($color, 4, 2)),
             'a' => 255,
         ];
+
+        // Create full canvas in memory for saving
+        $this->canvas = imagecreatetruecolor($terminal->width, $terminal->height);
+
+        // Fill with white background first
+        $white = imagecolorallocate($this->canvas, 255, 255, 255);
+        imagefill($this->canvas, 0, 0, $white);
+
+        // Enable alpha blending for drawing operations
+        imagealphablending($this->canvas, true);
+        imagesavealpha($this->canvas, true);
+
+        // Load the tldraw.png as background
+        $bgImage = imagecreatefrompng(__DIR__ . '/tldraw.png');
+        if ($bgImage !== false) {
+            imagecopy($this->canvas, $bgImage, 0, 0, 0, 0, imagesx($bgImage), imagesy($bgImage));
+            imagedestroy($bgImage);
+        }
     }
 
     public function clear()
@@ -258,6 +277,25 @@ class Draw
         echo "\e_Ga=d\e\\"; // Delete all visible Kitty graphics placements
 	(new Image($this->terminal))->displayPNG(__DIR__ . '/tldraw.png', 1, 1);
         $this->imageId = 1;
+
+        // Reset the canvas too
+        imagedestroy($this->canvas);
+        $this->canvas = imagecreatetruecolor($this->terminal->width, $this->terminal->height);
+
+        // Fill with white background
+        $white = imagecolorallocate($this->canvas, 255, 255, 255);
+        imagefill($this->canvas, 0, 0, $white);
+
+        // Enable alpha blending
+        imagealphablending($this->canvas, true);
+        imagesavealpha($this->canvas, true);
+
+        // Reload background
+        $bgImage = imagecreatefrompng(__DIR__ . '/tldraw.png');
+        if ($bgImage !== false) {
+            imagecopy($this->canvas, $bgImage, 0, 0, 0, 0, imagesx($bgImage), imagesy($bgImage));
+            imagedestroy($bgImage);
+        }
     }
 
     public function filled()
@@ -273,11 +311,18 @@ class Draw
     public function draw(int $x, int $y)
     {
         $brushRadius = (int) ($this->brushSize / 2);
+
+        // Store original center coordinates for GD canvas
+        $centerX = $x;
+        $centerY = $y;
+
+        // Adjust to top-left for terminal rendering
         $x -= $brushRadius;
         $y -= $brushRadius;
 
         // Collect all centres to be stamped
         $centres = [];
+        $gdCentres = []; // For GD canvas (actual center coordinates)
 
         if ($this->lastX !== 0 && $this->lastY !== 0) {
             $distance = sqrt(pow($x - $this->lastX, 2) + pow($y - $this->lastY, 2));
@@ -290,14 +335,31 @@ class Draw
                     $interpX = (int) ($this->lastX + ($x - $this->lastX) * $t);
                     $interpY = (int) ($this->lastY + ($y - $this->lastY) * $t);
                     $centres[] = ['x' => $interpX, 'y' => $interpY];
+                    // GD centres are at the actual center (add brushRadius back)
+                    $gdCentres[] = ['x' => $interpX + $brushRadius, 'y' => $interpY + $brushRadius];
                 }
             } else {
                 $centres[] = ['x' => (int)$x, 'y' => (int)$y];
+                $gdCentres[] = ['x' => (int)$centerX, 'y' => (int)$centerY];
             }
         }
 
         // Always include the final point
         $centres[] = ['x' => (int)$x, 'y' => (int)$y];
+        $gdCentres[] = ['x' => (int)$centerX, 'y' => (int)$centerY];
+
+        // Draw to GD canvas for saving
+        $gdColor = imagecolorallocate($this->canvas, $this->color['r'], $this->color['g'], $this->color['b']);
+
+        // Debug logging
+        static $debugCount = 0;
+        if ($debugCount < 5) {
+            $debugCount++;
+        }
+
+        foreach ($gdCentres as $c) {
+            imagefilledellipse($this->canvas, $c['x'], $c['y'], $this->brushSize, $this->brushSize, $gdColor);
+        }
 
         // Compute bounding box that encompasses all brush discs
         $minX = PHP_INT_MAX;
@@ -361,6 +423,44 @@ class Draw
         $this->lastY = $y;
         $this->imageId++;
     }
+
+    public function saveToFile(string $sshKey): string
+    {
+        $userHash = hash('sha256', $sshKey);
+        $path = "/tmp/tldraw-{$userHash}.png";
+
+        imagepng($this->canvas, $path);
+
+        return $path;
+    }
+}
+
+function displayDownloadInstructions(): void
+{
+    $reset = "\033[0m";
+    $bold = "\033[1m";
+    $green = "\033[32m";
+    $cyan = "\033[36m";
+    $yellow = "\033[33m";
+    $magenta = "\033[35m";
+    $white = "\033[97m";
+
+    $boxWidth = 71;
+
+    echo "\n";
+    echo "{$magenta}╭" . str_repeat('─', $boxWidth) . "╮{$reset}\n";
+    // ✨ is 2 visual chars wide, "Your drawing has been saved!" is 28, plus space = 31 total, plus 2 leading spaces = 33
+    echo "{$magenta}│{$reset}  {$bold}{$green}✨ Your drawing has been saved!{$reset}" . str_repeat(' ', 38) . "{$magenta}│{$reset}\n";
+    echo "{$magenta}├" . str_repeat('─', $boxWidth) . "┤{$reset}\n";
+    echo "{$magenta}│{$reset}" . str_repeat(' ', $boxWidth) . "{$magenta}│{$reset}\n";
+    // "Download your masterpiece with:" is 31 chars, plus 2 leading spaces = 33 total
+    echo "{$magenta}│{$reset}  {$white}Download your masterpiece with:{$reset}" . str_repeat(' ', 38) . "{$magenta}│{$reset}\n";
+    echo "{$magenta}│{$reset}" . str_repeat(' ', $boxWidth) . "{$magenta}│{$reset}\n";
+    // "ssh get-tldraw@whisp.fyi | base64 -d > my-drawing.png" is 53 chars, plus 2 leading spaces = 55 total
+    echo "{$magenta}│{$reset}  {$bold}{$cyan}ssh get-tldraw@whisp.fyi | base64 -d > my-drawing.png{$reset}" . str_repeat(' ', 16) . "{$magenta}│{$reset}\n";
+    echo "{$magenta}│{$reset}" . str_repeat(' ', $boxWidth) . "{$magenta}│{$reset}\n";
+    echo "{$magenta}╰" . str_repeat('─', $boxWidth) . "╯{$reset}\n";
+    echo "\n";
 }
 
 function generateRandomPastelColor(): string
@@ -399,6 +499,10 @@ function generateRandomPastelColor(): string
     return sprintf('%02x%02x%02x', round($r * 255), round($g * 255), round($b * 255));
 }
 
+// Get SSH key for user identification
+$sshKey = $_SERVER['WHISP_USER_PUBLIC_KEY'] ?? $_ENV['WHISP_USER_PUBLIC_KEY'] ?? '';
+$alreadySaved = false;
+
 $terminal = new Terminal();
 $draw = new Draw($terminal, generateRandomPastelColor());
 $image = new Image($terminal);
@@ -412,19 +516,40 @@ $terminal->hideCursor();
 $image->displayPNG(__DIR__ . '/tldraw.png', 1, 1);
 
 // Register shutdown function to ensure cleanup happens no matter how script exits
-register_shutdown_function(function () use ($terminal, $draw) {
+register_shutdown_function(function () use ($terminal, $draw, $sshKey, &$alreadySaved) {
+    // Save the drawing if SSH key is available and not already saved
+    if (!empty($sshKey) && !$alreadySaved) {
+        $draw->saveToFile($sshKey);
+        $alreadySaved = true;
+    }
+
     $terminal->cleanup();
     $draw->clear();
-    echo "\n"; // Add newline for clean exit
+
+    // Show download instructions if saved
+    if (!empty($sshKey)) {
+        displayDownloadInstructions();
+    }
 });
 
 // Handle signals (Ctrl+C, etc.) if pcntl is available
 if (function_exists('pcntl_signal')) {
     pcntl_async_signals(true);
-    $signalHandler = function () use ($terminal, $draw) {
+    $signalHandler = function () use ($terminal, $draw, $sshKey, &$alreadySaved) {
+        // Save the drawing if SSH key is available and not already saved
+        if (!empty($sshKey) && !$alreadySaved) {
+            $draw->saveToFile($sshKey);
+            $alreadySaved = true;
+        }
+
         $terminal->cleanup();
         $draw->clear();
-        echo "\n";
+
+        // Show download instructions if saved
+        if (!empty($sshKey)) {
+            displayDownloadInstructions();
+        }
+
         exit(0);
     };
     pcntl_signal(SIGINT, $signalHandler);  // Ctrl+C
@@ -481,5 +606,16 @@ while ($shouldRun) {
     $draw->draw($mouse->x, $mouse->y);
 }
 
+// Save before cleanup
+if (!empty($sshKey)) {
+    $draw->saveToFile($sshKey);
+    $alreadySaved = true;
+}
+
 $terminal->cleanup();
 $draw->clear();
+
+// Show download instructions
+if (!empty($sshKey)) {
+    displayDownloadInstructions();
+}
