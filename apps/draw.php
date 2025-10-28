@@ -222,8 +222,43 @@ class Draw
     }
 }
 
+function generateRandomPastelColor(): string {
+    // Generate random hue (0-360)
+    $hue = rand(0, 360);
+    // Keep saturation medium-high (60-80%) for vibrant but not too intense colors
+    $saturation = rand(60, 80);
+    // Keep lightness medium-high (65-80%) for pastel/bright colors that work on any background
+    $lightness = rand(65, 80);
+
+    // Convert HSL to RGB
+    $h = $hue / 360;
+    $s = $saturation / 100;
+    $l = $lightness / 100;
+
+    if ($s == 0) {
+        $r = $g = $b = $l;
+    } else {
+        $hue2rgb = function($p, $q, $t) {
+            if ($t < 0) $t += 1;
+            if ($t > 1) $t -= 1;
+            if ($t < 1/6) return $p + ($q - $p) * 6 * $t;
+            if ($t < 1/2) return $q;
+            if ($t < 2/3) return $p + ($q - $p) * (2/3 - $t) * 6;
+            return $p;
+        };
+
+        $q = $l < 0.5 ? $l * (1 + $s) : $l + $s - $l * $s;
+        $p = 2 * $l - $q;
+        $r = $hue2rgb($p, $q, $h + 1/3);
+        $g = $hue2rgb($p, $q, $h);
+        $b = $hue2rgb($p, $q, $h - 1/3);
+    }
+
+    return sprintf('%02x%02x%02x', round($r * 255), round($g * 255), round($b * 255));
+}
+
 $terminal = new Terminal();
-$draw = new Draw($terminal, 'af87ff');
+$draw = new Draw($terminal, generateRandomPastelColor());
 
 // Register shutdown function to ensure cleanup happens no matter how script exits
 register_shutdown_function(function () use ($terminal, $draw) {
