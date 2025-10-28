@@ -68,12 +68,13 @@ class Terminal
     {
         echo "\e[14t"; // Request pixel dimensions (CSI )
         $info = fread(STDIN, 14);
-        $dimensions = preg_match('/\x1b\[4;(\d+);(\d+)t/', $info, $matches);
+        $result = preg_match('/\x1b\[4;(\d+);(\d+)t/', $info, $matches);
 
-	if (!$dimensions) {
-		$this->cleanup();
-		exit("Failed to parse terminal dimensions. Your terminal might not support pixel queries.\nReceived: " . bin2hex($info) . "\nMake sure you're using Kitty, Ghostty, or WezTerm.\n");
-	}
+        if ($result === false || $result === 0) {
+            $this->cleanup();
+            throw new Exception("Failed to parse terminal dimensions. Your terminal might not support pixel queries.\nReceived: " . bin2hex($info) . "\nMake sure you're using Kitty, Ghostty, or WezTerm.\n");
+        }
+
         return [(int) $matches[1], (int) $matches[2]];
     }
 }
@@ -102,6 +103,7 @@ class Mouse
             $this->isMouseEvent = false;
             return;
         }
+        $this->isMouseEvent = true;
 
         $this->button = (int) $matches['button'];
         $this->x = (int) $matches['x'];
@@ -152,17 +154,17 @@ class Mouse
 
     public function isLeftButtonHeld(): bool
     {
-        return $this->button === 0 || $this->button === 32;
+        return ($this->button === 0 && $this->down) || $this->button === 32;
     }
 
     public function isRightButtonHeld(): bool
     {
-        return $this->button === 2 || $this->button === 33;
+        return ($this->button === 2 && $this->down) || $this->button === 33;
     }
 
     public function isMiddleButtonHeld(): bool
     {
-        return $this->button === 1 || $this->button === 34;
+        return ($this->button === 1 && $this->down) || $this->button === 34;
     }
 }
 
@@ -170,9 +172,10 @@ class Draw
 {
     public array $color = [];
     public int $brushSize = 15;
-    public int $brushSizeMin = 5;
-    public int $brushSizeMax = 50;
+    public int $minDistance = 3;
     public int $imageId = 1;
+    public int $lastX = 0;
+    public int $lastY = 0;
 
     protected Terminal $terminal;
 
@@ -193,36 +196,110 @@ class Draw
         $this->imageId = 1;
     }
 
+    public function filled()
+    {
+        return chr($this->color['r']) . chr($this->color['g']) . chr($this->color['b']) . chr(255);
+    }
+
+    public function transparent()
+    {
+        return chr(0) . chr(0) . chr(0) . chr(0);
+    }
+
     public function draw(int $x, int $y)
     {
-        $id = $this->imageId++;
-        $brushRadius = $this->brushSize / 2;
+        $brushRadius = (int) ($this->brushSize / 2);
+        $x -= $brushRadius;
+        $y -= $brushRadius;
 
-        // Create RGBA pixel data for a circle
-        $pixels = '';
-        for ($py = 0; $py < $this->brushSize; $py++) {
-            for ($px = 0; $px < $this->brushSize; $px++) {
-                $dx = $px - $brushRadius;
-                $dy = $py - $brushRadius;
-                $distance = sqrt($dx * $dx + $dy * $dy);
+        // Collect all centres to be stamped
+        $centres = [];
 
-                if ($distance <= $brushRadius) {
-                    // Inside circle - use brush color
-                    $pixels .= chr($this->color['r']) . chr($this->color['g']) . chr($this->color['b']) . chr(255);
-                } else {
-                    // Outside circle - transparent
-                    $pixels .= chr(0) . chr(0) . chr(0) . chr(0);
+        if ($this->lastX !== 0 && $this->lastY !== 0) {
+            $distance = sqrt(pow($x - $this->lastX, 2) + pow($y - $this->lastY, 2));
+
+            // If we've moved far, collect interpolated centres
+            if ($distance > $this->minDistance) {
+                $steps = ceil($distance / $this->minDistance);
+                for ($step = 1; $step <= $steps; $step++) {
+                    $t = $step / $steps;
+                    $interpX = (int) ($this->lastX + ($x - $this->lastX) * $t);
+                    $interpY = (int) ($this->lastY + ($y - $this->lastY) * $t);
+                    $centres[] = ['x' => $interpX, 'y' => $interpY];
+                }
+            } else {
+                $centres[] = ['x' => (int)$x, 'y' => (int)$y];
+            }
+        }
+
+        // Always include the final point
+        $centres[] = ['x' => (int)$x, 'y' => (int)$y];
+
+        // Compute bounding box that encompasses all brush discs
+        $minX = PHP_INT_MAX;
+        $maxX = PHP_INT_MIN;
+        $minY = PHP_INT_MAX;
+        $maxY = PHP_INT_MIN;
+
+        foreach ($centres as $c) {
+            $minX = min($minX, $c['x'] - $brushRadius);
+            $maxX = max($maxX, $c['x'] + $brushRadius);
+            $minY = min($minY, $c['y'] - $brushRadius);
+            $maxY = max($maxY, $c['y'] + $brushRadius);
+        }
+
+        $width = ($maxX - $minX) + 1;
+        $height = ($maxY - $minY) + 1;
+
+        // Allocate RGBA canvas (4 bytes per pixel)
+        $pixels = str_repeat($this->transparent(), $width * $height);
+
+        // Stamp each brush disc into the canvas
+        foreach ($centres as $c) {
+            $cx = $c['x'] - $minX;  // Local coordinates inside canvas
+            $cy = $c['y'] - $minY;
+
+            for ($py = -$brushRadius; $py <= $brushRadius; $py++) {
+                for ($px = -$brushRadius; $px <= $brushRadius; $px++) {
+                    // Check if pixel is within brush radius
+                    $distSq = $px * $px + $py * $py;
+                    if ($distSq > $brushRadius * $brushRadius) {
+                        continue;
+                    }
+
+                    $ix = $cx + $px;
+                    $iy = $cy + $py;
+
+                    // Skip if out of bounds
+                    if ($ix < 0 || $ix >= $width || $iy < 0 || $iy >= $height) {
+                        continue;
+                    }
+
+                    // Write RGBA pixel
+                    $offset = ($iy * $width + $ix) * 4;
+                    $pixels[$offset]     = chr($this->color['r']);
+                    $pixels[$offset + 1] = chr($this->color['g']);
+                    $pixels[$offset + 2] = chr($this->color['b']);
+                    $pixels[$offset + 3] = chr(255);  // Opaque
                 }
             }
         }
 
-        $payload = base64_encode($pixels);
+        // Compress, encode, and emit single escape sequence
+        $compressed = gzcompress($pixels);
+        $payload = base64_encode($compressed);
+        $sequence = "\e_Gf=32,o=z,s={$width},v={$height},a=T,i={$this->imageId},X={$minX},Y={$minY},z=-1,C=1;{$payload}\e\\";
+        echo $sequence;
 
-        echo "\e_Gf=32,s={$this->brushSize},v={$this->brushSize},a=T,i={$id},X={$x},Y={$y},z=-1,C=1;{$payload}\e\\";
+        // House-keeping
+        $this->lastX = $x;
+        $this->lastY = $y;
+        $this->imageId++;
     }
 }
 
-function generateRandomPastelColor(): string {
+function generateRandomPastelColor(): string
+{
     // Generate random hue (0-360)
     $hue = rand(0, 360);
     // Keep saturation medium-high (60-80%) for vibrant but not too intense colors
@@ -238,20 +315,20 @@ function generateRandomPastelColor(): string {
     if ($s == 0) {
         $r = $g = $b = $l;
     } else {
-        $hue2rgb = function($p, $q, $t) {
+        $hue2rgb = function ($p, $q, $t) {
             if ($t < 0) $t += 1;
             if ($t > 1) $t -= 1;
-            if ($t < 1/6) return $p + ($q - $p) * 6 * $t;
-            if ($t < 1/2) return $q;
-            if ($t < 2/3) return $p + ($q - $p) * (2/3 - $t) * 6;
+            if ($t < 1 / 6) return $p + ($q - $p) * 6 * $t;
+            if ($t < 1 / 2) return $q;
+            if ($t < 2 / 3) return $p + ($q - $p) * (2 / 3 - $t) * 6;
             return $p;
         };
 
         $q = $l < 0.5 ? $l * (1 + $s) : $l + $s - $l * $s;
         $p = 2 * $l - $q;
-        $r = $hue2rgb($p, $q, $h + 1/3);
+        $r = $hue2rgb($p, $q, $h + 1 / 3);
         $g = $hue2rgb($p, $q, $h);
-        $b = $hue2rgb($p, $q, $h - 1/3);
+        $b = $hue2rgb($p, $q, $h - 1 / 3);
     }
 
     return sprintf('%02x%02x%02x', round($r * 255), round($g * 255), round($b * 255));
@@ -259,6 +336,12 @@ function generateRandomPastelColor(): string {
 
 $terminal = new Terminal();
 $draw = new Draw($terminal, generateRandomPastelColor());
+
+// Enable mouse tracking with pixel precision
+$terminal->trackMouse();
+$terminal->clearText();
+$terminal->hideCursor();
+
 
 // Register shutdown function to ensure cleanup happens no matter how script exits
 register_shutdown_function(function () use ($terminal, $draw) {
@@ -280,15 +363,8 @@ if (function_exists('pcntl_signal')) {
     pcntl_signal(SIGTERM, $signalHandler); // kill command
 }
 
-// Enable mouse tracking with pixel precision
-$terminal->trackMouse();
-$terminal->clearText();
-$terminal->hideCursor();
+echo "Click and drag to draw! Right-click to clear. Press q to quit.\r";
 
-echo "Click and drag to draw! Right-click to clear. 'q' to exit.\r";
-
-$lastX = null;
-$lastY = null;
 $minDistance = $draw->brushSize * 0.2; // Draw more frequently for smoother lines
 $shouldDraw = false;
 $shouldRun = true;
@@ -300,7 +376,7 @@ while ($shouldRun) {
         break;
     }
 
-    if ($buffer === 'q' || substr($buffer, -1, 1) === 'q') {
+    if ($buffer === 'q') {
         $shouldRun = false;
         break;
     }
@@ -314,6 +390,7 @@ while ($shouldRun) {
     if ($mouse->isMouseEvent === false) {
         continue;
     }
+
     $terminal->clearBuffer();
 
     $shouldDraw = $mouse->isLeftButtonHeld();
@@ -323,8 +400,8 @@ while ($shouldRun) {
         $draw->clear();
         continue;
     } elseif ($mouse->isReleased()) {
-        $lastX = null;
-        $lastY = null;
+        $draw->lastX = 0;
+        $draw->lastY = 0;
         continue;
     }
 
@@ -332,34 +409,7 @@ while ($shouldRun) {
         continue;
     }
 
-    // Interpolate between points if moved too far (fills gaps from fast movement)
-    // Add after we have/show the dotted approach
-    if ($lastX !== null && $lastY !== null) {
-        $distance = sqrt(pow($mouse->x - $lastX, 2) + pow($mouse->y - $lastY, 2));
-
-        // If we've moved far, draw intermediate points
-        if ($distance > $minDistance) {
-            $steps = ceil($distance / $minDistance);
-            for ($step = 1; $step <= $steps; $step++) {
-                $t = $step / $steps;
-                $interpX = ($lastX + ($mouse->x - $lastX) * $t);
-                $interpY = ($lastY + ($mouse->y - $lastY) * $t);
-
-                $drawX = $interpX - ($draw->brushSize / 2);
-                $drawY = $interpY - ($draw->brushSize / 2);
-
-                $draw->draw((int)$drawX, (int)$drawY);
-            }
-        }
-    }
-    // First point
-    $drawX = $mouse->x - ($draw->brushSize / 2);
-    $drawY = $mouse->y - ($draw->brushSize / 2);
-    $draw->draw((int)$drawX, (int)$drawY);
-
-    // Update last position
-    $lastX = $mouse->x;
-    $lastY = $mouse->y;
+    $draw->draw($mouse->x, $mouse->y);
 }
 
 $terminal->cleanup();
