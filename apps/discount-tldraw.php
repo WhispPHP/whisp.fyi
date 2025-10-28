@@ -427,7 +427,7 @@ class Draw
     public function saveToFile(string $sshKey): string
     {
         $userHash = hash('sha256', $sshKey);
-        $path = "/tmp/tldraw-{$userHash}.png";
+        $path = sys_get_temp_dir() . "/tldraw-{$userHash}.png";
 
         imagepng($this->canvas, $path);
 
