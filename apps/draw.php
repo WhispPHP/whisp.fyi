@@ -220,6 +220,26 @@ class Draw
 $terminal = new Terminal();
 $draw = new Draw($terminal, 'af87ff');
 
+// Register shutdown function to ensure cleanup happens no matter how script exits
+register_shutdown_function(function () use ($terminal, $draw) {
+    $terminal->cleanup();
+    $draw->clear();
+    echo "\n"; // Add newline for clean exit
+});
+
+// Handle signals (Ctrl+C, etc.) if pcntl is available
+if (function_exists('pcntl_signal')) {
+    pcntl_async_signals(true);
+    $signalHandler = function () use ($terminal, $draw) {
+        $terminal->cleanup();
+        $draw->clear();
+        echo "\n";
+        exit(0);
+    };
+    pcntl_signal(SIGINT, $signalHandler);  // Ctrl+C
+    pcntl_signal(SIGTERM, $signalHandler); // kill command
+}
+
 // Enable mouse tracking with pixel precision
 $terminal->trackMouse();
 $terminal->clearText();
