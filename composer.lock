@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9ea8226a838f787012c9296cc922412b",
+    "content-hash": "b63b3300ae88b75828df4f258d7a14b3",
     "packages": [
         {
             "name": "paragonie/constant_time_encoding",
@@ -127,16 +127,16 @@
         },
         {
             "name": "phpseclib/phpseclib",
-            "version": "3.0.47",
+            "version": "3.0.52",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpseclib/phpseclib.git",
-                "reference": "9d6ca36a6c2dd434765b1071b2644a1c683b385d"
+                "reference": "2adaefc83df2ec548558307690f376dd7d4f4fce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/9d6ca36a6c2dd434765b1071b2644a1c683b385d",
-                "reference": "9d6ca36a6c2dd434765b1071b2644a1c683b385d",
+                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/2adaefc83df2ec548558307690f376dd7d4f4fce",
+                "reference": "2adaefc83df2ec548558307690f376dd7d4f4fce",
                 "shasum": ""
             },
             "require": {
@@ -217,7 +217,7 @@
             ],
             "support": {
                 "issues": "https://github.com/phpseclib/phpseclib/issues",
-                "source": "https://github.com/phpseclib/phpseclib/tree/3.0.47"
+                "source": "https://github.com/phpseclib/phpseclib/tree/3.0.52"
             },
             "funding": [
                 {
@@ -233,7 +233,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-10-06T01:07:24+00:00"
+            "time": "2026-04-27T07:02:15+00:00"
         },
         {
             "name": "psr/log",
@@ -287,16 +287,16 @@
         },
         {
             "name": "whispphp/whisp",
-            "version": "2.0.1",
+            "version": "dev-mlkem768x25519-sha256",
             "source": {
                 "type": "git",
                 "url": "https://github.com/WhispPHP/whisp.git",
-                "reference": "c45b67083cbcd9354c75fbf44badf30e2cad50f2"
+                "reference": "c92c421883686e9ba5fb426cbb51d32865e7e8ce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/WhispPHP/whisp/zipball/c45b67083cbcd9354c75fbf44badf30e2cad50f2",
-                "reference": "c45b67083cbcd9354c75fbf44badf30e2cad50f2",
+                "url": "https://api.github.com/repos/WhispPHP/whisp/zipball/c92c421883686e9ba5fb426cbb51d32865e7e8ce",
+                "reference": "c92c421883686e9ba5fb426cbb51d32865e7e8ce",
                 "shasum": ""
             },
             "require": {
@@ -331,18 +331,20 @@
             "description": "Pure PHP SSH server designed for terminal apps",
             "support": {
                 "issues": "https://github.com/WhispPHP/whisp/issues",
-                "source": "https://github.com/WhispPHP/whisp/tree/2.0.1"
+                "source": "https://github.com/WhispPHP/whisp/tree/mlkem768x25519-sha256"
             },
-            "time": "2025-10-28T23:10:26+00:00"
+            "time": "2026-05-13T10:08:38+00:00"
         }
     ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "whispphp/whisp": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

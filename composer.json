@@ -1,6 +1,6 @@
 {
     "require": {
-        "whispphp/whisp": "^2.0"
+        "whispphp/whisp": "dev-mlkem768x25519-sha256"
     },
     "autoload": {
         "psr-4": {
