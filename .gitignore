@@ -5,6 +5,7 @@ guestbook.json
 apps/guestbook.json
 storage
 infinite_canvas.json
+runtime/
 
 # Added by Claude Task Master
 # Logs
