@@ -49,7 +49,7 @@ function copyToClipboard(string $text): void
     echo "\033]52;c;{$encodedText}\007";
 }
 
-$fullCommand = 'ssh secret-'.$hashid.'@whisp.fyi';
+$fullCommand = 'ssh secret-'.$hashid.'@your-server';
 $secret->drawBox(
     title: 'Share this with '.$authorizedGitHubUsername.' so they can access the secret:',
     content: $fullCommand

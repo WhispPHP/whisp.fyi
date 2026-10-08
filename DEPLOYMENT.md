@@ -1,25 +1,25 @@
 # Deployment
 
-This app is deployed as a systemd-managed Whisp SSH server.
+Use this guide to deploy the example apps on your own systemd-managed Whisp SSH server. Replace `your-server` with your host and adjust the admin username, ports, user/group, and checkout paths for your installation.
 
 Repo evidence:
 
 - `systemd/whisp.service` runs `/usr/bin/php8.4 whisp-server.php 22`.
-- Public app SSH traffic is served on `whisp.fyi:22`.
-- The local SSH alias `elec` points at `elec@46.101.72.14:2222`, which appears to be the droplet admin SSH port.
+- The service listens for app SSH traffic on port 22.
+- Keep your admin SSH access on a separate port; the commands below use port 2222.
 
-Current production state on the `elec` droplet:
+Example installation paths:
 
 - The service runs as user/group `elec`.
 - The service working directory is `/home/elec/whisp.fyi`.
-- The service unit is root-owned, and `elec` does not have passwordless sudo.
+- Updating the service unit and restarting the service require sudo access.
 
 ## Update
 
-Commit and push the desired changes to `main`, then SSH into the droplet admin port:
+Commit and push the desired changes to `main`, then SSH into your server's admin port:
 
 ```bash
-ssh elec
+ssh admin@your-server -p2222
 ```
 
 Update the checkout and dependencies:
@@ -58,7 +58,7 @@ sudo journalctl -u whisp -n 100 --no-pager
 Verify from a workstation with a client that supports ML-KEM:
 
 ```bash
-ssh -vv -o KexAlgorithms=mlkem768x25519-sha256 howdy-dood@whisp.fyi
+ssh -vv -o KexAlgorithms=mlkem768x25519-sha256 howdy-dood@your-server
 ```
 
 The debug output should include:

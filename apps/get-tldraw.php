@@ -16,7 +16,7 @@ $file = sys_get_temp_dir() . "/tldraw-{$userHash}.png";
 
 if (!file_exists($file)) {
     fwrite(STDERR, "No drawing found. Draw something first!\n");
-    fwrite(STDERR, "Run: ssh whisp.fyi discount-tldraw\n");
+    fwrite(STDERR, "Run: ssh your-server discount-tldraw\n");
     exit(1);
 }
 

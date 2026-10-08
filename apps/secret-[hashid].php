@@ -60,4 +60,4 @@ copyToClipboard($decryptedSecret);
 warning('This secret can only be viewed once. Make sure you have copied it somewhere safe.'.PHP_EOL.'We should have put it in your clipboard for you.');
 
 // Alert box about sharing
-outro('Share Your Own Secret: To share your own secret, just run: ssh secrets@whisp.fyi');
+outro('Share Your Own Secret: To share your own secret, just run: ssh secrets@your-server');
