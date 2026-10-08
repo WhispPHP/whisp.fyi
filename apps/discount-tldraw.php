@@ -509,8 +509,8 @@ function displayDownloadInstructions(): void
     // "Download your masterpiece with:" is 31 chars, plus 2 leading spaces = 33 total
     echo "{$magenta}│{$reset}  {$white}Download your masterpiece with:{$reset}" . str_repeat(' ', 38) . "{$magenta}│{$reset}\n";
     echo "{$magenta}│{$reset}" . str_repeat(' ', $boxWidth) . "{$magenta}│{$reset}\n";
-    // "ssh get-tldraw@whisp.fyi > my-drawing.png" is 53 chars, plus 2 leading spaces = 55 total
-    echo "{$magenta}│{$reset}  {$bold}{$cyan}ssh get-tldraw@whisp.fyi > my-drawing.png{$reset}" . str_repeat(' ', 28) . "{$magenta}│{$reset}\n";
+    // Keep the download command aligned within the output box.
+    echo "{$magenta}│{$reset}  {$bold}{$cyan}ssh get-tldraw@your-server > my-drawing.png{$reset}" . str_repeat(' ', 26) . "{$magenta}│{$reset}\n";
     echo "{$magenta}│{$reset}" . str_repeat(' ', $boxWidth) . "{$magenta}│{$reset}\n";
     echo "{$magenta}╰" . str_repeat('─', $boxWidth) . "╯{$reset}\n";
     echo "\n";

@@ -1,42 +1,23 @@
-# SSH apps hosted on whisp.fyi domain as live demos
-All apps are hosted with [Whisp](https://github.com/WhispPHP/whisp), the pure PHP SSH server for PHP based TUIs.
+# Whisp Example Apps
+
+Example SSH apps built with [Whisp](https://github.com/WhispPHP/whisp), the pure PHP SSH server for PHP-based TUIs. Run these apps on your own Whisp server.
 
 ⇾ [Learn more about Whisp](https://whispphp.com)
 
-# Which apps are here?
+## Which apps are here?
 
-```bash
-ssh confetti@whisp.fyi
-```
+- [Confetti](apps/confetti.php)
+- [Sunrise and sunset times](apps/daylight.php)
+- [Dinorun](apps/dinorun.php)
+- [Guestbook](apps/guestbook.php)
+- [Hello World with parameters](apps/howdy-[name].php)
+- [Hello World](apps/howdy.php)
+- [Notifications](apps/notification.php)
+- [One-time secrets](apps/secrets.php)
 
-```bash
-ssh daylight@whisp.fyi
-```
-
-```bash
-ssh dinorun@whisp.fyi
-```
-
-```bash
-ssh guestbook@whisp.fyi
-```
-
-```bash
-ssh howdy-dood@whisp.fyi
-```
-
-```bash
-ssh howdy@whisp.fyi
-```
-
-```bash
-ssh notification@whisp.fyi
-```
-
-```bash
-ssh secrets@whisp.fyi
-```
-
+See [Deployment](DEPLOYMENT.md) for server setup and update guidance. Replace
+`your-server` in the example apps' SSH instructions with your own host and
+add `-p PORT` if your server uses a port other than 22.
 
 ## Support & Credits
 
